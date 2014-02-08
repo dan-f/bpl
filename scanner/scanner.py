@@ -29,41 +29,81 @@ class Scanner():
         The generator tokenizes the input program using a simple DFA algorithm.
         """
         with open(self.filename) as f:
-            buf = f.read()
-
-            # the 'states' for our DFA
-            in_keyw_or_id = False
-            in_num        = False
-            in_str        = False
-            in_sym        = False
-            in_comm       = False
-
-            # the current token's string
-            cur_str = ''
-
             # keep track of our current buffer index and line number
+            buf = f.read()
             i = 0
             line = 1
 
+            # the 'states' for our DFA
+            START   = 0
+            KEY_ID  = 1
+            NUMBER  = 2
+            STRLIT  = 3
+            SYMBOL  = 4
+            COMMENT = 5
+
+            # the current token's string value
+            cur_str = ''
+
+            state = START
+
             while i < len(buf):
-                # the following cases suppose we're in the middle of a token
-                if in_comm:
+                # We're in the start state if we've either just begun
+                # scanning or just accepted a token.  Otherwise, we're
+                # in one of the other five states corresponding to the
+                # type of token we're reading in.
+                if state == START:
+                    # skip whitespace, count newlines
+                    if buf[i].isspace():
+                        if buf[i] == '\n':
+                            line += 1
+                        i += 1
+                        continue
+                    # comment
+                    if i < len(buf) - 1 and buf[i] == '/' and buf[i+1] == '*':
+                        state = COMMENT
+                        i += 2
+                    # string literal
+                    elif buf[i] == '\"':
+                        state = STRLIT
+                        i += 1
+                    # keyword or id
+                    elif buf[i].isalnum():
+                        cur_str += buf[i]
+                        state = KEY_ID
+                        i += 1
+                    # symbol
+                    elif [sym for sym in TokenType.Symbols
+                          if sym.startswith(cur_str + buf[i])]:
+                        cur_str += buf[i]
+                        state = SYMBOL
+                        i += 1
+                    # number
+                    elif buf[i].isdigit():
+                        cur_str += buf[i]
+                        state = NUMBER
+                        i += 1
+                    else:
+                        raise Exception('Unknown character %s at %s:%d:%d'
+                                        % (buf[i], self.filename, line, i))
+
+                elif state == COMMENT:
                     if buf[i] != '*':
                         i += 1
                     elif i < len(buf) - 1 and buf[i+1] == '/':
                         i += 2
-                        in_comm = False
+                        state = START
 
-                elif in_str:
+                elif state == STRLIT:
                     if buf[i] != '\"':
                         cur_str += buf[i]
                     else:
                         yield Token(TokenType.STRLIT, cur_str, line)
                         cur_str = ''
-                        in_str = False
+                        state = START
                     i += 1
 
-                elif in_keyw_or_id:
+                elif state == KEY_ID:
                     if buf[i].isalnum():
                         cur_str += buf[i]
                         i += 1
@@ -75,9 +115,9 @@ class Scanner():
                         else:
                             yield Token(TokenType.ID, cur_str, line)
                         cur_str = ''
-                        in_keyw_or_id = False
+                        state = START
 
-                elif in_sym:
+                elif state == SYMBOL:
                     matches = [sym for sym in TokenType.Symbols
                                if sym.startswith(cur_str + buf[i])]
                     if matches:
@@ -86,53 +126,15 @@ class Scanner():
                     else:
                         yield Token(TokenType.Symbols[cur_str], cur_str, line)
                         cur_str = ''
-                        in_sym = False
+                        state = START
 
-                elif in_num:
+                elif state == NUMBER:
                     if buf[i].isdigit():
                         cur_str += buf[i]
                         i += 1
                     else:
                         yield Token(TokenType.NUM, cur_str, line)
                         cur_str = ''
-                        in_num = False
+                        state = START
 
-                else:
-                    # the following cases suppose we're in no state (either
-                    # beginning scanning or just accepted a string)
-
-                    # skip whitespace, count newlines
-                    if buf[i].isspace():
-                        if buf[i] == '\n':
-                            line += 1
-                        i += 1
-                        continue
-
-                    # comment
-                    if i < len(buf) - 1 and buf[i] == '/' and buf[i+1] == '*':
-                        in_comm = True
-                        i += 2
-                    # string literal
-                    elif buf[i] == '\"':
-                        in_str = True
-                        i += 1
-                    # keyword or id
-                    elif buf[i].isalnum():
-                        cur_str += buf[i]
-                        in_keyw_or_id = True
-                        i += 1
-                    # symbol
-                    elif [sym for sym in TokenType.Symbols
-                          if sym.startswith(cur_str + buf[i])]:
-                        cur_str += buf[i]
-                        in_sym = True
-                        i += 1
-                    # number
-                    elif buf[i].isdigit():
-                        cur_str += buf[i]
-                        in_num = True
-                        i += 1
-                    else:
-                        raise Exception('Unknown character %s at %s:%d:%d'
-                                        % (buf[i], self.filename, line, i))
             yield Token(TokenType.EOF, 'EOF', line)
