@@ -68,7 +68,7 @@ class Scanner():
                         state = STRLIT
                         i += 1
                     # keyword or id
-                    elif buf[i].isalnum():
+                    elif buf[i].isalpha():
                         cur_str += buf[i]
                         state = KEY_ID
                         i += 1
@@ -104,7 +104,7 @@ class Scanner():
                     i += 1
 
                 elif state == KEY_ID:
-                    if buf[i].isalnum():
+                    if buf[i].isalnum() or buf[i] == '_':
                         cur_str += buf[i]
                         i += 1
                     else:
