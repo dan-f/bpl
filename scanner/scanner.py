@@ -104,7 +104,7 @@ class Scanner():
                     i += 1
 
                 elif state == KEY_ID:
-                    if buf[i].isalnum():
+                    if buf[i].isalnum() or buf[i] == '_':
                         cur_str += buf[i]
                         i += 1
                     else:
