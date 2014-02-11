@@ -88,11 +88,11 @@ class Scanner():
                                         % (buf[i], self.filename, line, i))
 
                 elif state == COMMENT:
-                    if buf[i] != '*':
-                        i += 1
-                    elif i < len(buf) - 1 and buf[i+1] == '/':
+                    if i < len(buf) - 1 and buf[i] == '*' and buf[i+1] == '/':
                         i += 2
                         state = START
+                    else:
+                        i += 1
 
                 elif state == STRLIT:
                     if buf[i] != '\"':
