@@ -29,9 +29,12 @@ class Scanner():
         The generator tokenizes the input program using a simple DFA algorithm.
         """
         with open(self.filename) as f:
-            # keep track of our current buffer index and line number
+            # keep track of our current buffer index and line number.
+            # line_begin is the index of the first byte of the
+            # line. (this helps us print error messages)
             buf = f.read()
             i = 0
+            line_begin = 0
             line = 1
 
             # the 'states' for our DFA
@@ -57,6 +60,7 @@ class Scanner():
                     if buf[i].isspace():
                         if buf[i] == '\n':
                             line += 1
+                            line_begin = i
                         i += 1
                         continue
                     # comment
@@ -84,10 +88,13 @@ class Scanner():
                         state = NUMBER
                         i += 1
                     else:
-                        raise Exception('Unknown character %s at %s:%d:%d'
-                                        % (buf[i], self.filename, line, i))
+                        raise Exception('%s:%d:%d: Unknown character %s'
+                                        % (self.filename, line, i - line_begin, buf[i]))
 
                 elif state == COMMENT:
+                    if buf[i] == '\n':
+                        line += 1
+                        line_begin = i
                     if i < len(buf) - 1 and buf[i] == '*' and buf[i+1] == '/':
                         i += 2
                         state = START
@@ -95,6 +102,9 @@ class Scanner():
                         i += 1
 
                 elif state == STRLIT:
+                    if buf[i] == '\n':
+                        raise Exception('%s:%d:%d: Unexpected newline in string literal'
+                                        % (self.filename, line, i - line_begin))
                     if buf[i] != '\"':
                         cur_str += buf[i]
                     else:
@@ -137,4 +147,14 @@ class Scanner():
                         cur_str = ''
                         state = START
 
-            yield Token(TokenType.EOF, 'EOF', line)
+            # nothing left in the buffer.  Make sure we've closed our
+            # quoted strings/comments
+            if state == STRLIT:
+                raise Exception('%s:%d:%d: Unclosed string literal'
+                                % (self.filename, line, i - line_begin))
+            elif state == COMMENT:
+                print('i: %d, line_begin: %d' % (i, line_begin))
+                raise Exception('%s:%d:%d: Unclosed comment'
+                                % (self.filename, line, i - line_begin))
+            else:
+                yield Token(TokenType.EOF, 'EOF', line)
