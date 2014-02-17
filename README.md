@@ -1,12 +1,41 @@
 bpl
 ===
 
-Bob's Programming Language, implemented for CS331 at Oberlin College
+Bob's Programming Language, implemented for CS331 at Oberlin College.
 
-## Implementation
+Developed with Python 2.7.6.
+
+### Structure
+The project is layed out as follows:
+
+    .                           # top-level directory.  Run tests from here!
+    ├── README.md
+    └── bpl                     # bpl python package
+        ├── __init__.py
+        ├── __init__.pyc
+        ├── scanner             # scanner package
+        │   ├── __init__.py
+        │   ├── __init__.pyc
+        │   ├── scanner.py
+        │   ├── scanner.pyc
+        │   ├── token.py
+        │   └── token.pyc
+        |
+        | ...
+        |
+        └── test                # test package
+            ├── __init__.py
+            ├── __init__.pyc
+            ├── example.bpl
+            └── scanner_test.py
+
+### Testing
+Run `python -m bpl.test.foo_test`, where `foo` is the module to be
+tested.  For example, to test the scanner, run `python -m
+bpl.test.scanner_test`.
 
 ### Scanner
-Scan a bpl program named `filename`:
+Scan a bpl program named `filename` as follows:
 
     s = Scanner(filename)
     # bootstrap by manually asking for the first token
@@ -20,6 +49,3 @@ from the input file and assigns it to `s.next_token`.  Note that you
 must explicitly ask for the first token by running `s.next_token` to
 bootstrap the scanning process (the constructor does not do this for
 you).
-
-An example bpl program file has been provided.  To scan it and print the
-output, run `python test.py` from the `scanner` directory.

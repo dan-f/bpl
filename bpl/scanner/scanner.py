@@ -1,4 +1,4 @@
-from token import TokenType, Token
+from bpl.scanner.token import TokenType, Token
 
 
 class Scanner():
