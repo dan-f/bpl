@@ -20,7 +20,7 @@ class Scanner():
 
     def get_next_token(self):
         """Grabs the next token from :tokens: and saves it to :next_token:"""
-        self.next_token = self.tokens.next()
+        self.next_token = next(self.tokens)
 
     def _next_token_gen(self):
         """Returns a generator to iterate over Token objects for every token in
