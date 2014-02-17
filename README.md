@@ -30,9 +30,9 @@ The project is layed out as follows:
             └── scanner_test.py
 
 ### Testing
-Run `python -m bpl.test.foo_test`, where `foo` is the module to be
-tested.  For example, to test the scanner, run `python -m
-bpl.test.scanner_test`.
+Always run tests from the top-level directory.  To test a module
+`foo`, run `python -m bpl.test.foo_test`.  For example, run `python -m
+bpl.test.scanner_test` to test the scanner.
 
 ### Scanner
 Scan a bpl program named `filename` as follows:
