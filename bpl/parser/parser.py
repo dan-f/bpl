@@ -66,7 +66,7 @@ class Parser():
             TokenType.LCURLY, 'compound statement must begin with left curly'
         )
         line = curly_token.line
-        local_decs = None
+        local_decs = self.local_decs()
         stmt_list = self.statement_list()
         self.expect(
             TokenType.RCURLY, 'compound statement must end with right curly'
@@ -78,9 +78,42 @@ class Parser():
             stmt_list
         )
 
+    def local_decs(self):
+        v = None
+        if self.scan.next_token.typ in (TokenType.INT, TokenType.STRING, TokenType.VOID):
+            v = self.var_dec()
+            v.nxt = self.local_decs()
+        return v
+
+    def var_dec(self):
+        typ, name = self.dec_header()
+        self.expect(
+            TokenType.SEMI,
+            'variable declaration must end in semicolon'
+        )
+        return VarDecNode(
+            kind=ParseTreeNode.VAR_DEC,
+            line_number=typ.line,
+            name=name,
+            typ=typ,
+            is_pointer=False  # TODO: support pointers
+        )
+
+    def dec_header(self):
+        typ = self.expect(
+            TokenType.INT, TokenType.STRING, TokenType.VOID,
+            'unexpected type identifier'
+        )
+        var = self.expect(
+            TokenType.ID,
+            'unexpected variable name'
+        )
+        return typ, var.val
+
     def statement_list(self):
-        stmt = self.statement()
+        stmt = None
         if self.scan.next_token.typ != TokenType.RCURLY:
+            stmt = self.statement()
             stmt.nxt = self.statement_list()
         return stmt
 

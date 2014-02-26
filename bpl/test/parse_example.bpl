@@ -1,8 +1,9 @@
 {
-  a;
-  {
-    x;
-    y;
-    z;
-  }
+	int a;
+	string b;
+	void c;
+	{
+		x;
+		y;
+	}
 }
