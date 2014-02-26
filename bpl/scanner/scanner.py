@@ -19,8 +19,13 @@ class Scanner():
         self.tokens = self._next_token_gen()
 
     def get_next_token(self):
-        """Grabs the next token from :tokens: and saves it to :next_token:"""
-        self.next_token = next(self.tokens)
+        """Grabs the next token from :tokens: and saves it to :next_token:.
+        If :tokens: is empty, just set :next_token: to None.
+        """
+        try:
+            self.next_token = next(self.tokens)
+        except StopIteration:
+            pass
 
     def _next_token_gen(self):
         """Returns a generator to iterate over Token objects for every token in
