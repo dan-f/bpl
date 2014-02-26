@@ -86,6 +86,12 @@ class ParseTreeNode():
         self.line_number = line_number
         self.nxt = nxt
 
+    def base_str(self):
+        return 'Kind: %s, Line: %d\n' % (self.constants[self.kind], self.line_number)
+
+    def __str__(self):
+        return '%s\n%s' % (self.base_str(), self.nxt)
+
 
 #######################
 #  Declaration Nodes  #
@@ -171,6 +177,9 @@ class ExpStmtNode(StmtNode):
         StmtNode.__init__(self, kind, line_number, nxt)
         self.expr = expr
 
+    def __str__(self):
+        return '%sExpression:\n%s\n%s' % (self.base_str(), indent(self.expr), self.nxt)
+
 
 class IfStmtNode(StmtNode):
     """Represents an if statement node in the parse tree."""
@@ -204,6 +213,8 @@ class CompStmtNode(StmtNode):
         self.local_decs = local_decs
         self.stmt_list = stmt_list
 
+    def __str__(self):
+        return '%sLocal Declarations:\n%s\nStatement List:\n%s\n%s' % (self.base_str(), indent(self.local_decs), indent(self.stmt_list), self.nxt)
 
 class RetStmtNode(StmtNode):
     """Represents a return statement node in the parse tree."""
@@ -302,6 +313,9 @@ class VarExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.name = name
 
+    def __str__(self):
+        return '%sName: %s\n%s' % (self.base_str(), self.name, self.nxt)
+
 
 class OpExpNode(ExpNode):
     """Represents an operator expression node in the parse tree."""
@@ -366,3 +380,17 @@ class DerefExpNode(ExpNode):
         """
         ExpNode.__init__(self, kind, line_number, nxt)
         self.var = var
+
+
+def indent(s):
+    """Returns the indented string representation of :s: by putting a pipe
+    and one space before each line.
+
+    """
+    if s is None:
+        return None
+
+    indented = ''
+    for line in str(s).splitlines():
+        indented += "| %s\n" % line
+    return indented
