@@ -87,7 +87,10 @@ class ParseTreeNode():
         self.nxt = nxt
 
     def base_str(self):
-        return 'Kind: %s, Line: %d\n' % (self.constants[self.kind], self.line_number)
+        return 'Kind: %s, Line: %d\n' % (
+            self.constants[self.kind],
+            self.line_number
+        )
 
     def __str__(self):
         return '%s\n%s' % (self.base_str(), self.nxt)
@@ -150,7 +153,9 @@ class ArrayDecNode(VarDecNode):
         :size: Size of the array.
 
         """
-        VarDecNode.__init__(self, kind, line_number, name, typ, is_pointer=False, nxt=nxt)
+        VarDecNode.__init__(
+            self, kind, line_number, name, typ, is_pointer=False, nxt=nxt
+        )
         self.size = size
 
 
@@ -178,7 +183,11 @@ class ExpStmtNode(StmtNode):
         self.expr = expr
 
     def __str__(self):
-        return '%sExpression:\n%s\n%s' % (self.base_str(), indent(self.expr), self.nxt)
+        return '%sExpression:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.expr),
+            self.nxt
+        )
 
 
 class IfStmtNode(StmtNode):
@@ -214,7 +223,13 @@ class CompStmtNode(StmtNode):
         self.stmt_list = stmt_list
 
     def __str__(self):
-        return '%sLocal Declarations:\n%s\nStatement List:\n%s\n%s' % (self.base_str(), indent(self.local_decs), indent(self.stmt_list), self.nxt)
+        return '%sLocal Declarations:\n%s\nStatement List:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.local_decs),
+            indent(self.stmt_list),
+            self.nxt
+        )
+
 
 class RetStmtNode(StmtNode):
     """Represents a return statement node in the parse tree."""
@@ -340,8 +355,8 @@ class FunCallExpNode(ExpNode):
     def __init__(self, kind, line_number, params, nxt=None):
         """Initializes a function call node.
 
-        :params: An expression node representing the list of parameters to the
-        function call.
+        :params: An expression node representing the list of
+        parameters to the function call.
 
         """
         ExpNode.__init__(self, kind, line_number, nxt)
