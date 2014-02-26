@@ -87,7 +87,7 @@ class ParseTreeNode():
         self.nxt = nxt
 
     def base_str(self):
-        return 'Kind: %s, Line: %d\n' % (
+        return '%s (Line: %d)' % (
             self.constants[self.kind],
             self.line_number
         )
@@ -143,6 +143,15 @@ class VarDecNode(DecNode):
         DecNode.__init__(self, kind, line_number, name, typ, nxt)
         self.is_pointer = is_pointer
 
+    def __str__(self):
+        return '%s, Name: %s, Type: %s\n%s' % (
+            self.base_str(),
+            self.name,
+            self.typ,
+            self.nxt
+        )
+
+
 
 class ArrayDecNode(VarDecNode):
     """Represents an array declaration node in the parse tree."""
@@ -183,7 +192,7 @@ class ExpStmtNode(StmtNode):
         self.expr = expr
 
     def __str__(self):
-        return '%sExpression:\n%s\n%s' % (
+        return '%s\nExpression:\n%s\n%s' % (
             self.base_str(),
             indent(self.expr),
             self.nxt
@@ -223,7 +232,7 @@ class CompStmtNode(StmtNode):
         self.stmt_list = stmt_list
 
     def __str__(self):
-        return '%sLocal Declarations:\n%s\nStatement List:\n%s\n%s' % (
+        return '%s\nLocal Declarations:\n%s\nStatement List:\n%s\n%s' % (
             self.base_str(),
             indent(self.local_decs),
             indent(self.stmt_list),
@@ -329,7 +338,7 @@ class VarExpNode(ExpNode):
         self.name = name
 
     def __str__(self):
-        return '%sName: %s\n%s' % (self.base_str(), self.name, self.nxt)
+        return '%s, Name: %s\n%s' % (self.base_str(), self.name, self.nxt)
 
 
 class OpExpNode(ExpNode):
@@ -408,4 +417,4 @@ def indent(s):
     indented = ''
     for line in str(s).splitlines():
         indented += "| %s\n" % line
-    return indented
+    return indented[:-1]
