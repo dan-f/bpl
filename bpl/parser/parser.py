@@ -22,21 +22,23 @@ class Parser():
         self.scan.get_next_token()  # grab our first token
         self.tree = tree
 
-    def expect(self, tokentype, message):
+    def expect(self, *args):
         """Verify that the current token's type matches what is expected.
         If the tokentypes match, advance the scanner.
         Otherwise throw an error.
 
-        :tokentype: The TokenType we're expecting to see.
-        :message: The message of the Exception we will throw if the types do
-        not match.
+        :*args: The first n-1 args are any acceptable TokenTypes, and
+        the last is the message of the Exception we will throw if the
+        types do not match.
 
         """
         cur_token = self.scan.next_token
-        if cur_token.typ != tokentype:
+        message = args[-1]
+        token_types = args[:-1]
+        if cur_token.typ not in token_types:
             raise Exception('%s\nExpected %s, but got %s: \"%s\"' %
                             (message,
-                             TokenType.constants[tokentype],
+                             [TokenType.constants[token_type] for token_type in token_types],
                              TokenType.constants[cur_token.typ],
                              cur_token.val))
         self.scan.get_next_token()
