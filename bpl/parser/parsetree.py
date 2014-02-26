@@ -40,6 +40,40 @@ class ParseTreeNode():
     ARGS       = 29
     ARG_LIST   = 30
 
+    constants = {
+        0  : 'PROG',
+        1  : 'DEC_LIST',
+        2  : 'DEC',
+        3  : 'VAR_DEC',
+        4  : 'TYPE_SPEC',
+        5  : 'FUN_DEC',
+        6  : 'PARAMS',
+        7  : 'PARAM_LIST',
+        8  : 'PARAM',
+        9  : 'COMP_STMT',
+        10 : 'LOCAL_DECS',
+        11 : 'STMT_LIST',
+        12 : 'STMT',
+        13 : 'EXPR_STMT',
+        14 : 'IF_STMT',
+        15 : 'WHILE_STMT',
+        16 : 'RET_STMT',
+        17 : 'WRITE_STMT',
+        18 : 'EXPR',
+        19 : 'VAR',
+        20 : 'COMP_EXP',
+        21 : 'RELOP',
+        22 : 'E',
+        23 : 'ADDOP',
+        24 : 'T',
+        25 : 'MULOP',
+        26 : 'F',
+        27 : 'FACTOR',
+        28 : 'FUN_CALL',
+        29 : 'ARGS',
+        30 : 'ARG_LIST'
+    }
+
     def __init__(self, kind, line_number, nxt=None):
         """Initializes a parse tree node.
 

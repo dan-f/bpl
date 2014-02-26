@@ -43,6 +43,45 @@ class TokenType():
     # end of file token
     EOF     = 34
 
+    # Converts TokenType values to their variable names. Useful for debugging.
+    constants = {
+        0  : 'ID',
+        1  : 'NUM',
+        2  : 'STRLIT',
+        3  : 'INT',
+        4  : 'VOID',
+        5  : 'STRING',
+        6  : 'IF',
+        7  : 'ELSE',
+        8  : 'WHILE',
+        9  : 'RETURN',
+        10 : 'WRITE',
+        11 : 'WRITELN',
+        12 : 'READ',
+        13 : 'EQUAL',
+        14 : 'SEMI',
+        15 : 'COMMA',
+        16 : 'LSQUARE',
+        17 : 'RSQUARE',
+        18 : 'LCURLY',
+        19 : 'RCURLY',
+        20 : 'LPAREN',
+        21 : 'RPAREN',
+        22 : 'LESS',
+        23 : 'LEQUAL',
+        24 : 'BOOLEQ',
+        25 : 'NEQUAL',
+        26 : 'GEQUAL',
+        27 : 'GREATER',
+        28 : 'PLUS',
+        29 : 'MINUS',
+        30 : 'STAR',
+        31 : 'SLASH',
+        32 : 'MOD',
+        33 : 'AMP',
+        34 : 'EOF'
+    }
+
     Keywords = {
         'int'     : INT,
         'void'    : VOID,
