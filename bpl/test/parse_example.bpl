@@ -1,8 +1,6 @@
-{
-	int a;
-	string b;
-	while (foo) {
-		x;
-		y;
+if (foo) {
+	int i;
+	while (i) {
+		bar;
 	}
 }

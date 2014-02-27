@@ -89,6 +89,8 @@ class Parser():
             return self.expression_statement()
         elif self.scan.next_token.typ == TokenType.WHILE:
             return self.while_statement()
+        elif self.scan.next_token.typ == TokenType.IF:
+            return self.if_statement()
         else:
             raise Exception(
                 'Unsupported statement: %s' %
@@ -132,6 +134,33 @@ class Parser():
             while_token.line,
             cond,
             body
+        )
+
+    def if_statement(self):
+        if_token = self.expect(
+            TokenType.IF,
+            'if statement must start with keyword \"if\"'
+        )
+        self.expect(
+            TokenType.LPAREN,
+            'conditional must be parenthesized'
+        )
+        cond = self.expression();
+        self.expect(
+            TokenType.RPAREN,
+            'missing closing parenthesis in if condition'
+        )
+        true_body = self.statement()
+        false_body = None
+        if self.scan.next_token.typ == TokenType.ELSE:
+            self.scan.get_next_token()
+            false_body = self.statement()
+        return IfStmtNode(
+            ParseTreeNode.IF_STMT,
+            if_token.line,
+            cond,
+            true_body,
+            false_body
         )
 
     def statement_list(self):

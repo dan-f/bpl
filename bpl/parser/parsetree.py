@@ -215,6 +215,15 @@ class IfStmtNode(StmtNode):
         self.true_body = true_body
         self.false_body = false_body
 
+    def __str__(self):
+        return '%s\nCondition:\n%s\nTrue Body:\n%s\nFalse Body:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.cond),
+            indent(self.true_body),
+            indent(self.false_body),
+            self.nxt
+        )
+
 
 class WhileStmtNode(StmtNode):
     """Represents a while statement node in the parse tree."""
