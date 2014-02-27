@@ -50,11 +50,45 @@ class Parser():
         self.expect(TokenType.EOF, 'unexpected token at end of file')
         self.tree = tree
 
+    def dec_header(self):
+        typ = self.expect(
+            TokenType.INT, TokenType.STRING, TokenType.VOID,
+            'unexpected type identifier'
+        )
+        var = self.expect(
+            TokenType.ID,
+            'unexpected variable name'
+        )
+        return typ, var.val
+
+    def local_decs(self):
+        v = None
+        if self.scan.next_token.typ in (TokenType.INT, TokenType.STRING, TokenType.VOID):
+            v = self.var_dec()
+            v.nxt = self.local_decs()
+        return v
+
+    def var_dec(self):
+        typ, name = self.dec_header()
+        self.expect(
+            TokenType.SEMI,
+            'variable declaration must end in semicolon'
+        )
+        return VarDecNode(
+            kind=ParseTreeNode.VAR_DEC,
+            line_number=typ.line,
+            name=name,
+            typ=typ,
+            is_pointer=False  # TODO: support pointers
+        )
+
     def statement(self):
         if self.scan.next_token.typ == TokenType.LCURLY:
             return self.compound_statement()
         elif self.scan.next_token.typ == TokenType.ID:
             return self.expression_statement()
+        elif self.scan.next_token.typ == TokenType.WHILE:
+            return self.while_statement()
         else:
             raise Exception(
                 'Unsupported statement: %s' %
@@ -78,37 +112,27 @@ class Parser():
             stmt_list
         )
 
-    def local_decs(self):
-        v = None
-        if self.scan.next_token.typ in (TokenType.INT, TokenType.STRING, TokenType.VOID):
-            v = self.var_dec()
-            v.nxt = self.local_decs()
-        return v
-
-    def var_dec(self):
-        typ, name = self.dec_header()
+    def while_statement(self):
+        while_token = self.expect(
+            TokenType.WHILE,
+            'while statement must start with keyword \"while\"'
+        )
         self.expect(
-            TokenType.SEMI,
-            'variable declaration must end in semicolon'
+            TokenType.LPAREN,
+            'conditional must be parenthesized'
         )
-        return VarDecNode(
-            kind=ParseTreeNode.VAR_DEC,
-            line_number=typ.line,
-            name=name,
-            typ=typ,
-            is_pointer=False  # TODO: support pointers
+        cond = self.expression();
+        self.expect(
+            TokenType.RPAREN,
+            'missing closing parenthesis in while condition'
         )
-
-    def dec_header(self):
-        typ = self.expect(
-            TokenType.INT, TokenType.STRING, TokenType.VOID,
-            'unexpected type identifier'
+        body = self.statement()
+        return WhileStmtNode(
+            ParseTreeNode.WHILE_STMT,
+            while_token.line,
+            cond,
+            body
         )
-        var = self.expect(
-            TokenType.ID,
-            'unexpected variable name'
-        )
-        return typ, var.val
 
     def statement_list(self):
         stmt = None

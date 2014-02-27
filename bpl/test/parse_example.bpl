@@ -1,8 +1,7 @@
 {
 	int a;
 	string b;
-	void c;
-	{
+	while (foo) {
 		x;
 		y;
 	}

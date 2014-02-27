@@ -216,6 +216,29 @@ class IfStmtNode(StmtNode):
         self.false_body = false_body
 
 
+class WhileStmtNode(StmtNode):
+    """Represents a while statement node in the parse tree."""
+
+    def __init__(self, kind, line_number, cond, body, nxt=None):
+        """Initialize a while statement node.
+
+        :cond: The while statement's conditional expression.
+        :body: The statement to be executed while the condition is true.
+
+        """
+        StmtNode.__init__(self, kind, line_number, nxt)
+        self.cond = cond
+        self.body = body
+
+    def __str__(self):
+        return '%s\nCondition:\n%s\nBody:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.cond),
+            indent(self.body),
+            self.nxt
+        )
+
+
 class CompStmtNode(StmtNode):
     """Represents a compound statement node in the parse tree."""
 
