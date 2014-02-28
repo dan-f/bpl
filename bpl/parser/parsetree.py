@@ -1,6 +1,3 @@
-# TODO: ask Bob about read nodes (both expression and statement) - Should these
-# nodes have a field for their values?  We don't know their values until run
-# time, right?
 class ParseTreeNode():
     """Represents a node in the parse-tree.  Inherited by more specific
     parse tree node classes.
@@ -285,25 +282,17 @@ class RetStmtNode(StmtNode):
         self.val = val
 
 
-class ReadStmtNode(StmtNode):
-    """Represents a read statement node in the parse tree."""
-
-    def __init__(self, kind, line_number, nxt=None):
-        """Initializes a read statement node."""
-        StmtNode.__init__(self, kind, line_number, nxt)
-
-
 class WriteStmtNode(StmtNode):
     """Represents a write statement node in the parse tree."""
 
-    def __init__(self, kind, line_number, val, nxt=None):
+    def __init__(self, kind, line_number, expr, nxt=None):
         """Initializes a write statement node.
 
-        :val: The expression who'se value we're writing.
+        :expr: The expression who'se value we're writing.
 
         """
         StmtNode.__init__(self, kind, line_number, nxt)
-        self.val = val
+        self.expr = expr
 
 
 class WritelnStmtNode(StmtNode):
