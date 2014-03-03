@@ -236,7 +236,7 @@ class Parser():
             # add/sub expression
             op = self.consume()
             t1 = OpExpNode(
-                kind=ParseTreeNode.MATH_EXP,
+                kind=ParseTreeNode.ARITH_EXP,
                 line_number = t.line_number,
                 op=op,
                 l_exp=t,
@@ -252,7 +252,7 @@ class Parser():
                                        TokenType.MOD):
             op = self.consume()
             f1 = OpExpNode(
-                kind=ParseTreeNode.MATH_EXP,
+                kind=ParseTreeNode.ARITH_EXP,
                 line_number=f.line_number,
                 op=op,
                 l_exp=f,

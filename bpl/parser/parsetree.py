@@ -22,7 +22,7 @@ class ParseTreeNode():
     READ_EXP = 14
     ASSIGN_EXP = 15
     COMP_EXP = 16
-    MATH_EXP = 17
+    ARITH_EXP = 17
     NEG_EXP = 18
     INT_EXP = 19
     STR_EXP = 20
@@ -45,7 +45,7 @@ class ParseTreeNode():
         14: 'READ_EXP',
         15: 'ASSIGN_EXP',
         16: 'COMP_EXP',
-        17: 'MATH_EXP',
+        17: 'ARITH_EXP',
         18: 'NEG_EXP',
         19: 'INT_EXP',
         20: 'STR_EXP'
