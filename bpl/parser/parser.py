@@ -86,17 +86,12 @@ class Parser():
     def statement(self):
         if self.scan.next_token.typ == TokenType.LCURLY:
             return self.compound_statement()
-        elif self.scan.next_token.typ == TokenType.ID:
-            return self.expression_statement()
         elif self.scan.next_token.typ == TokenType.WHILE:
             return self.while_statement()
         elif self.scan.next_token.typ == TokenType.IF:
             return self.if_statement()
         else:
-            raise Exception(
-                'Unsupported statement: %s' %
-                TokenType.constants[self.scan.next_token.typ]
-            )
+            return self.expression_statement()
 
     def compound_statement(self):
         curly_token = self.expect(
