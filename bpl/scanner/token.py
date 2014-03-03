@@ -119,6 +119,8 @@ class TokenType():
         '&': AMP
     }
 
+    DataTypes = (INT, STRING, VOID)
+
 
 class Token():
     def __init__(self, typ, val, line):

@@ -64,7 +64,7 @@ class Parser():
 
     def local_decs(self):
         v = None
-        if self.scan.next_token.typ in (TokenType.INT, TokenType.STRING, TokenType.VOID):
+        if self.scan.next_token.typ in TokenType.DataTypes:
             v = self.var_dec()
             v.nxt = self.local_decs()
         return v
