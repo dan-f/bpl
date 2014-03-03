@@ -347,11 +347,10 @@ class Parser():
         elif self.cur_token().typ is TokenType.STAR:
             # dereference expression
             line = self.consume().line
-            var_exp = self.var()
             return DerefExpNode(
                 kind=ParseTreeNode.DEREF_EXP,
                 line_number=line,
-                exp=var_exp
+                exp=self.var()
             )
         elif self.cur_token().typ is TokenType.NUM:
             # number expression
@@ -370,7 +369,7 @@ class Parser():
                 val=string.val
             )
         elif self.cur_token().typ is TokenType.LPAREN:
-            line = self.consume().line
+            self.consume()
             exp = self.expression()
             self.expect(
                 TokenType.RPAREN,
