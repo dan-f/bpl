@@ -120,6 +120,7 @@ class TokenType():
     }
 
     DataTypes = (INT, STRING, VOID)
+    Relops = (LESS, LEQUAL, BOOLEQ, NEQUAL, GEQUAL, GREATER)
 
 
 class Token():

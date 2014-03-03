@@ -5,70 +5,50 @@ class ParseTreeNode():
     """
     # Node 'kinds' represent the particular type of parse tree node, defined by
     # our grammar rules.
-    PROG       = 0
-    DEC_LIST   = 1
-    DEC        = 2
-    VAR_DEC    = 3
-    TYPE_SPEC  = 4
-    FUN_DEC    = 5
-    PARAMS     = 6
-    PARAM_LIST = 7
-    PARAM      = 8
-    COMP_STMT  = 9
-    LOCAL_DECS = 10
-    STMT_LIST  = 11
-    STMT       = 12
-    EXPR_STMT  = 13
-    IF_STMT    = 14
-    WHILE_STMT = 15
-    RET_STMT   = 16
-    WRITE_STMT = 17
-    EXPR       = 18
-    VAR        = 19
-    COMP_EXP   = 20
-    RELOP      = 21
-    E          = 22
-    ADDOP      = 23
-    T          = 24
-    MULOP      = 25
-    F          = 26
-    FACTOR     = 27
-    FUN_CALL   = 28
-    ARGS       = 29
-    ARG_LIST   = 30
+    FUN_DEC = 0
+    VAR_DEC = 1
+    ARR_DEC = 2
+    COMP_STMT = 3
+    EXPR_STMT = 4
+    IF_STMT = 5
+    WHILE_STMT = 6
+    RET_STMT = 7
+    WRITE_STMT = 8
+    VAR_EXP = 9
+    ARR_EXP = 10
+    ADDR_EXP = 11
+    DEREF_EXP = 12
+    FUN_CALL_EXP = 13
+    READ_EXP = 14
+    ASSIGN_EXP = 15
+    COMP_EXP = 16
+    MATH_EXP = 17
+    NEG_EXP = 18
+    INT_EXP = 19
+    STR_EXP = 20
 
     constants = {
-        0  : 'PROG',
-        1  : 'DEC_LIST',
-        2  : 'DEC',
-        3  : 'VAR_DEC',
-        4  : 'TYPE_SPEC',
-        5  : 'FUN_DEC',
-        6  : 'PARAMS',
-        7  : 'PARAM_LIST',
-        8  : 'PARAM',
-        9  : 'COMP_STMT',
-        10 : 'LOCAL_DECS',
-        11 : 'STMT_LIST',
-        12 : 'STMT',
-        13 : 'EXPR_STMT',
-        14 : 'IF_STMT',
-        15 : 'WHILE_STMT',
-        16 : 'RET_STMT',
-        17 : 'WRITE_STMT',
-        18 : 'EXPR',
-        19 : 'VAR',
-        20 : 'COMP_EXP',
-        21 : 'RELOP',
-        22 : 'E',
-        23 : 'ADDOP',
-        24 : 'T',
-        25 : 'MULOP',
-        26 : 'F',
-        27 : 'FACTOR',
-        28 : 'FUN_CALL',
-        29 : 'ARGS',
-        30 : 'ARG_LIST'
+        0: 'FUN_DEC',
+        1: 'VAR_DEC',
+        2: 'ARR_DEC',
+        3: 'COMP_STMT',
+        4: 'EXPR_STMT',
+        5: 'IF_STMT',
+        6: 'WHILE_STMT',
+        7: 'RET_STMT',
+        8: 'WRITE_STMT',
+        9: 'VAR_EXP',
+        10: 'ARR_EXP',
+        11: 'ADDR_EXP',
+        12: 'DEREF_EXP',
+        13: 'FUN_CALL_EXP',
+        14: 'READ_EXP',
+        15: 'ASSIGN_EXP',
+        16: 'COMP_EXP',
+        17: 'MATH_EXP',
+        18: 'NEG_EXP',
+        19: 'INT_EXP',
+        20: 'STR_EXP'
     }
 
     def __init__(self, kind, line_number, nxt=None):
@@ -149,12 +129,11 @@ class VarDecNode(DecNode):
         )
 
 
-
 class ArrayDecNode(VarDecNode):
     """Represents an array declaration node in the parse tree."""
 
     def __init__(self, kind, line_number, name, typ, size, nxt=None):
-        """Initialize a variable declaration node.
+        """Initialize an array declaration node.
 
         :size: Size of the array.
 
@@ -332,6 +311,9 @@ class IntExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.val = val
 
+    def __str__(self):
+        return '%s, Value: %s\n%s' % (self.base_str(), self.val, self.nxt)
+
 
 class StrExpNode(ExpNode):
     """Represents a string expression node in the parse tree."""
@@ -344,6 +326,73 @@ class StrExpNode(ExpNode):
         """
         ExpNode.__init__(self, kind, line_number, nxt)
         self.val = val
+
+    def __str__(self):
+        return '%s, Value: \"%s\"\n%s' % (self.base_str(), self.val, self.nxt)
+
+
+class OpExpNode(ExpNode):
+    """Represents an operator expression node in the parse tree.  This
+    could be something like:
+
+    `a = b`, `a + b`, or `a > b`
+
+    :kind:'s of this node can be (TODO)
+    """
+
+    def __init__(self, kind, line_number, op, l_exp, r_exp, nxt=None):
+        """Initializes a variable expression node.
+
+        :op: A token representing the operator.
+        :l_exp: The left expression.
+        :r_exp: The right expression.
+
+        """
+        ExpNode.__init__(self, kind, line_number, nxt)
+        self.op = op
+        self.l_exp = l_exp
+        self.r_exp = r_exp
+
+    def __str__(self):
+        return '%s, Operator: %s\nLeft Expression:\n%s\nRight Expression:\n%s\n%s' % (
+            self.base_str(),
+            self.op,
+            indent(self.l_exp),
+            indent(self.r_exp),
+            self.nxt
+        )
+
+
+class FunCallExpNode(ExpNode):
+    """Represents a function call node in the parse tree."""
+
+    def __init__(self, kind, line_number, name, params, nxt=None):
+        """Initializes a function call node.
+
+        :name: The string name of the function.
+        :params: An expression node representing the list of
+        parameters to the function call.
+
+        """
+        ExpNode.__init__(self, kind, line_number, nxt)
+        self.name = name
+        self.params = params
+
+    def __str__(self):
+        return '%s, Name: %s\nParams:\n%s\n%s' % (
+            self.base_str(),
+            self.name,
+            indent(self.params),
+            self.nxt
+        )
+
+
+class ReadExpNode(ExpNode):
+    """Represents a read node in the parse tree."""
+
+    def __init__(self, kind, line_number, nxt=None):
+        """Initializes a read expression node."""
+        ExpNode.__init__(self, kind, line_number, nxt)
 
 
 class VarExpNode(ExpNode):
@@ -362,69 +411,80 @@ class VarExpNode(ExpNode):
         return '%s, Name: %s\n%s' % (self.base_str(), self.name, self.nxt)
 
 
-class OpExpNode(ExpNode):
-    """Represents an operator expression node in the parse tree."""
+class ArrExpNode(ExpNode):
+    """Represents an array expression node in the parse tree."""
 
-    def __init__(self, kind, line_number, op, l_exp, r_exp, nxt=None):
-        """Initializes a variable expression node.
+    def __init__(self, kind, line_number, name, index, nxt=None):
+        """Initializes an array expression node.
 
-        :op: A token representing the operator.
-        :l_exp: The left expression.
-        :r_exp: The right expression.
-
-        """
-        ExpNode.__init__(self, kind, line_number, nxt)
-        self.op = op
-        self.l_exp = l_exp
-        self.r_exp = r_exp
-
-
-class FunCallExpNode(ExpNode):
-    """Represents a function call node in the parse tree."""
-
-    def __init__(self, kind, line_number, params, nxt=None):
-        """Initializes a function call node.
-
-        :params: An expression node representing the list of
-        parameters to the function call.
+        :name: The string name of this array.
+        :index: An expression node who'se value indexes this array.
 
         """
         ExpNode.__init__(self, kind, line_number, nxt)
-        self.params = params
+        self.name = name
+        self.index = index
 
-
-class ReadExpNode(ExpNode):
-    """Represents a read node in the parse tree."""
-
-    def __init__(self, kind, line_number, nxt=None):
-        """Initializes a read expression node."""
-        ExpNode.__init__(self, kind, line_number, nxt)
+    def __str__(self):
+        return '%s, Name: %s\nIndex:\n%s\n%s' % (
+            self.base_str(), self.name, indent(self.index), self.nxt
+        )
 
 
 class AddrExpNode(ExpNode):
     """Represents an address node in the parse tree."""
 
-    def __init__(self, kind, line_number, var, nxt=None):
+    def __init__(self, kind, line_number, exp, nxt=None):
         """Initializes an address expression node.
 
-        :var: The variable who'se address we're referencing
+        :exp: The expression who'se address we're referencing
 
         """
         ExpNode.__init__(self, kind, line_number, nxt)
-        self.var = var
+        self.exp = exp
+
+    def __str__(self):
+        return '%s\nExpression:\n%s\n%s' % (
+            self.base_str(), indent(self.exp), self.nxt
+        )
 
 
 class DerefExpNode(ExpNode):
     """Represents a dereference node in the parse tree."""
 
-    def __init__(self, kind, line_number, var, nxt=None):
+    def __init__(self, kind, line_number, exp, nxt=None):
         """Initializes a dereference expression node.
 
-        :var: The variable who we're dereferencing
+        :exp: The expression which we're dereferencing
 
         """
         ExpNode.__init__(self, kind, line_number, nxt)
-        self.var = var
+        self.exp = exp
+
+    def __str__(self):
+        return '%s\nExpression:\n%s\n%s' % (
+            self.base_str(), indent(self.exp), self.nxt
+        )
+
+
+class NegExpNode(ExpNode):
+    """Represents a negated node in the parse tree."""
+
+    def __init__(self, kind, line_number, exp, nxt=None):
+        """Initializes a negated expression node.
+
+        :exp: The expression which we're negating
+
+        """
+        ExpNode.__init__(self, kind, line_number, nxt)
+        self.exp = exp
+
+    def __str__(self):
+        return '%s\nExpression:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.exp),
+            self.nxt
+        )
 
 
 def indent(s):
