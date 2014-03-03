@@ -2,16 +2,6 @@ from bpl.parser.parsetree import *
 from bpl.scanner.scanner import Scanner
 from bpl.scanner.token import TokenType
 
-# Current supported grammar:
-#     PROGRAM
-#       -> STATEMENT
-#     STATEMENT
-#       -> EXPRESSION_STMT
-#        | COMPOUND_STMT
-#     EXPRESSION_STMT
-#       -> EXPRESSION;
-#     EXPRESSION
-#       -> <id>
 
 
 class Parser():
