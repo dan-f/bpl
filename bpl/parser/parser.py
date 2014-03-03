@@ -404,7 +404,7 @@ class Parser():
         return VarExpNode(
             kind=ParseTreeNode.VAR_EXP,
             line=name.line,
-            name=name
+            name=name.val
         )
 
 
