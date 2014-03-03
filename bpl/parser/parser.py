@@ -90,11 +90,11 @@ class Parser():
         )
 
     def statement(self):
-        if self.cur_token().typ == TokenType.LCURLY:
+        if self.cur_token().typ is TokenType.LCURLY:
             return self.compound_statement()
-        elif self.cur_token().typ == TokenType.WHILE:
+        elif self.cur_token().typ is TokenType.WHILE:
             return self.while_statement()
-        elif self.cur_token().typ == TokenType.IF:
+        elif self.cur_token().typ is TokenType.IF:
             return self.if_statement()
         else:
             return self.expression_statement()
@@ -154,7 +154,7 @@ class Parser():
         )
         true_body = self.statement()
         false_body = None
-        if self.cur_token().typ == TokenType.ELSE:
+        if self.cur_token().typ is TokenType.ELSE:
             self.consume()
             false_body = self.statement()
         return IfStmtNode(
@@ -191,7 +191,7 @@ class Parser():
         # the expression as an E and then make sure we're not doing
         # something dumb like `5 = 6` before returning the expression.
         first_exp = self.E()
-        if self.cur_token().typ == TokenType.EQUAL:
+        if self.cur_token().typ is TokenType.EQUAL:
             # assignment expression
             if first_exp.kind not in (ParseTreeNode.VAR_EXP,
                                       ParseTreeNode.ARR_EXP,
