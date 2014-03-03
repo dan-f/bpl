@@ -42,7 +42,7 @@ class Parser():
                                    for token_type in token_types],
                                   TokenType.constants[cur_token.typ],
                                   cur_token.val))
-        self.scan.get_next_token()
+        self.consume()
         return cur_token
 
     def cur_token(self):
@@ -52,6 +52,14 @@ class Parser():
 
         """
         return self.scan.next_token
+
+    def consume(self):
+        """Gets the next token from :self.scan: and returns the consumed one.
+
+        """
+        last_token = self.cur_token()
+        self.scan.get_next_token()
+        return last_token
 
     def program(self):
         """Construct our parse tree and save it to self.tree"""
@@ -157,7 +165,7 @@ class Parser():
         true_body = self.statement()
         false_body = None
         if self.cur_token().typ == TokenType.ELSE:
-            self.scan.get_next_token()
+            self.consume()
             false_body = self.statement()
         return IfStmtNode(
             kind=ParseTreeNode.IF_STMT,
@@ -202,8 +210,7 @@ class Parser():
                     'Left-hand side of assignment expression must be a \
                     variable, array, or dereference expression'
                 )
-            op = self.cur_token()
-            self.scan.get_next_token()
+            op = self.consume()
             next_exp = self.expression()
             return OpExpNode(
                 kind=ParseTreeNode.ASSIGN_EXP,
@@ -214,8 +221,7 @@ class Parser():
             )
         elif self.cur_token().typ in TokenType.Relops:
             # relational expression
-            op = self.cur_token()
-            self.scan.get_next_token()
+            op = self.consume()
             next_exp = self.expression()
             return OpExpNode(
                 kind=ParseTreeNode.COMP_EXP,
@@ -238,8 +244,7 @@ class Parser():
         t1 = self.T()
         if self.cur_token().typ in (TokenType.PLUS, TokenType.MINUS):
             # add/sub expression
-            op = self.cur_token()
-            self.scan.get_next_token()
+            op = self.consume()
             t2 = self.E()
             return OpExpNode(
                 kind=ParseTreeNode.MATH_EXP,
@@ -256,8 +261,7 @@ class Parser():
         if self.cur_token().typ in (TokenType.STAR,
                                     TokenType.SLASH,
                                     TokenType.MOD):
-            op = self.cur_token()
-            self.scan.get_next_token()
+            op = self.consume()
             f2 = self.T()
             return OpExpNode(
                 kind=ParseTreeNode.MATH_EXP,
@@ -272,14 +276,14 @@ class Parser():
         line = self.cur_token().line
         if self.cur_token().typ is TokenType.MINUS:
             # negation expression
-            self.scan.get_next_token()
+            self.consume()
             return NegExpNode(
                 kind=ParseTreeNode.NEG_EXP,
                 line_number=line,
                 exp=self.factor()
             )
         elif self.cur_token().typ is TokenType.AMP:
-            self.scan.get_next_token()
+            self.consume()
             fact = self.factor()
             return AddrExpNode(
                 kind=ParseTreeNode.ADDR_EXP,
@@ -287,7 +291,7 @@ class Parser():
                 exp=fact
             )
         elif self.cur_token().typ is TokenType.STAR:
-            self.scan.get_next_token()
+            self.consume()
             fact = self.factor()
             return DerefExpNode(
                 kind=ParseTreeNode.DEREF_EXP,
@@ -298,12 +302,11 @@ class Parser():
 
     def factor(self):
         if self.cur_token().typ is TokenType.ID:
-            name = self.cur_token()
+            name = self.consume()
             line = name.line
-            self.scan.get_next_token()
             if self.cur_token().typ is TokenType.LSQUARE:
                 # array expression
-                self.scan.get_next_token()
+                self.consume()
                 index = self.expression()
                 self.expect(
                     TokenType.RSQUARE,
@@ -317,7 +320,7 @@ class Parser():
                 )
             elif self.cur_token().typ is TokenType.LPAREN:
                 # function call expression
-                self.scan.get_next_token()
+                self.consume()
                 args = self.args()
                 self.expect(
                     TokenType.RPAREN,
@@ -338,8 +341,7 @@ class Parser():
                 )
         elif self.cur_token().typ is TokenType.READ:
             # read expression
-            line = self.cur_token().line
-            self.scan.get_next_token()
+            line = self.consume().line
             self.expect(
                 TokenType.LPAREN,
                 'Missing opening paren at read expression'
@@ -354,8 +356,7 @@ class Parser():
             )
         elif self.cur_token().typ is TokenType.STAR:
             # dereference expression
-            line = self.cur_token().line
-            self.scan.get_next_token()
+            line = self.consume().line
             var_exp = self.var()
             return DerefExpNode(
                 kind=ParseTreeNode.DEREF_EXP,
@@ -364,8 +365,7 @@ class Parser():
             )
         elif self.cur_token().typ is TokenType.NUM:
             # number expression
-            num = self.cur_token()
-            self.scan.get_next_token()
+            num = self.consume()
             return IntExpNode(
                 kind=ParseTreeNode.INT_EXP,
                 line_number=num.line,
@@ -373,16 +373,14 @@ class Parser():
             )
         elif self.cur_token().typ is TokenType.STRLIT:
             # string expression
-            string = self.cur_token()
-            self.scan.get_next_token()
+            string = self.consume()
             return StrExpNode(
                 kind=ParseTreeNode.STR_EXP,
                 line_number=string.line,
                 val=string.val
             )
         elif self.cur_token().typ is TokenType.LPAREN:
-            line = self.cur_token().line
-            self.scan.get_next_token()
+            line = self.consume().line
             exp = self.expression()
             self.expect(
                 TokenType.RPAREN,
@@ -406,7 +404,7 @@ class Parser():
         nxt = None
         if self.cur_token().typ is TokenType.COMMA:
             # consume the comma, and recursively build up our args list
-            self.scan.get_next_token()
+            self.consume()
             nxt = self.args_list()
         arg.nxt = nxt
         return arg
