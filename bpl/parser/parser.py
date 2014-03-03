@@ -32,18 +32,18 @@ class Parser():
         types do not match.
 
         """
-        cur_token = self.cur_token()
+        current_token = self.cur_token()
         message = args[-1]
         token_types = args[:-1]
-        if cur_token.typ not in token_types:
+        if current_token.typ not in token_types:
             raise ParseException('%s\nExpected %s, but got %s: \"%s\"' %
                                  (message,
                                   [TokenType.constants[token_type]
                                    for token_type in token_types],
-                                  TokenType.constants[cur_token.typ],
-                                  cur_token.val))
+                                  TokenType.constants[current_token.typ],
+                                  current_token.val))
         self.consume()
-        return cur_token
+        return current_token
 
     def cur_token(self):
         """Wrapper for :self.scan.next_token:.  I find the 'next' terminology
