@@ -104,10 +104,10 @@ class Parser():
             TokenType.RCURLY, 'compound statement must end with right curly'
         )
         return CompStmtNode(
-            ParseTreeNode.COMP_STMT,
-            line,
-            local_decs,
-            stmt_list
+            kind=ParseTreeNode.COMP_STMT,
+            line_number=line,
+            local_decs=local_decs,
+            stmt_list=stmt_list
         )
 
     def while_statement(self):
@@ -126,10 +126,10 @@ class Parser():
         )
         body = self.statement()
         return WhileStmtNode(
-            ParseTreeNode.WHILE_STMT,
-            while_token.line,
-            cond,
-            body
+            kind=ParseTreeNode.WHILE_STMT,
+            line_number=while_token.line,
+            cond=cond,
+            body=body
         )
 
     def if_statement(self):
@@ -152,11 +152,11 @@ class Parser():
             self.scan.get_next_token()
             false_body = self.statement()
         return IfStmtNode(
-            ParseTreeNode.IF_STMT,
-            if_token.line,
-            cond,
-            true_body,
-            false_body
+            kind=ParseTreeNode.IF_STMT,
+            line_number=if_token.line,
+            cond=cond,
+            true_body=true_body,
+            false_body=false_body
         )
 
     def statement_list(self):
@@ -172,9 +172,9 @@ class Parser():
             TokenType.SEMI, 'expression statement must end with semicolon'
         )
         return ExpStmtNode(
-            ParseTreeNode.EXPR_STMT,
-            exp.line_number,
-            exp
+            kind=ParseTreeNode.EXPR_STMT,
+            line_number=exp.line_number,
+            expr=exp
         )
 
     def expression(self):
@@ -404,11 +404,11 @@ class Parser():
         return arg
 
     def var(self):
-        ID = self.expect(TokenType.ID, 'var expression must be an ID')
+        name = self.expect(TokenType.ID, 'var expression must be an ID')
         return VarExpNode(
-            ParseTreeNode.VAR_EXP,
-            ID.line,
-            ID
+            kind=ParseTreeNode.VAR_EXP,
+            line=name.line,
+            name=name
         )
 
 
