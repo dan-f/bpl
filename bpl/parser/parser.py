@@ -231,46 +231,46 @@ class Parser():
         # I.e. even though we have E -> E + T | T, we know that the
         # first E eventually goes to a T, so instead of first asking
         # for an E, we ask for a T.
-        t1 = self.T()
-        if self.cur_token().typ in (TokenType.PLUS, TokenType.MINUS):
+        t = self.T()
+        while self.cur_token().typ in (TokenType.PLUS, TokenType.MINUS):
             # add/sub expression
             op = self.consume()
-            t2 = self.E()
-            return OpExpNode(
+            t1 = OpExpNode(
                 kind=ParseTreeNode.MATH_EXP,
-                line_number=t1.line_number,
+                line_number = t.line_number,
                 op=op,
-                l_exp=t1,
-                r_exp=t2
+                l_exp=t,
+                r_exp=self.T()
             )
-        # if we haven't seen a +/-, just return the T
-        return t1
+            t = t1
+        return t
 
     def T(self):
-        f1 = self.F()
-        if self.cur_token().typ in (TokenType.STAR,
-                                    TokenType.SLASH,
-                                    TokenType.MOD):
+        f = self.F()
+        while self.cur_token().typ in (TokenType.STAR,
+                                       TokenType.SLASH,
+                                       TokenType.MOD):
             op = self.consume()
-            f2 = self.T()
-            return OpExpNode(
+            f1 = OpExpNode(
                 kind=ParseTreeNode.MATH_EXP,
-                line_number=f1.line_number,
+                line_number=f.line_number,
                 op=op,
-                l_exp=f1,
-                r_exp=f2
+                l_exp=f,
+                r_exp=self.F()
             )
-        return f1
+            f = f1
+        return f
 
     def F(self):
         line = self.cur_token().line
         if self.cur_token().typ is TokenType.MINUS:
             # negation expression
             self.consume()
+            fact = self.factor()
             return NegExpNode(
                 kind=ParseTreeNode.NEG_EXP,
                 line_number=line,
-                exp=self.factor()
+                exp=fact
             )
         elif self.cur_token().typ is TokenType.AMP:
             self.consume()

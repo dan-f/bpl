@@ -3,14 +3,13 @@
  * Recursive faith dictates that any valid nesting of these expressions
  * should work if the individual parts do. */
 {
-    void x;
     /* assignment expression */
     x = 3;
     /* comparison expression */
     x > 3;
     /* E's */
-    x + 3;
-    x - 3;
+    x + 3 - 4 + 5;		/* note left associativity */
+    y1 * y2 / y3 % y4;
     /* T's */
     x * 3;
     x / 3;
