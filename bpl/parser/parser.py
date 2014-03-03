@@ -1,6 +1,6 @@
 from bpl.parser.parsetree import *
 from bpl.scanner.scanner import Scanner
-from bpl.scanner.token import TokenType, Token
+from bpl.scanner.token import TokenType
 
 # Current supported grammar:
 #     PROGRAM
@@ -36,11 +36,12 @@ class Parser():
         message = args[-1]
         token_types = args[:-1]
         if cur_token.typ not in token_types:
-            raise Exception('%s\nExpected %s, but got %s: \"%s\"' %
-                            (message,
-                             [TokenType.constants[token_type] for token_type in token_types],
-                             TokenType.constants[cur_token.typ],
-                             cur_token.val))
+            raise ParseException('%s\nExpected %s, but got %s: \"%s\"' %
+                                 (message,
+                                  [TokenType.constants[token_type]
+                                   for token_type in token_types],
+                                  TokenType.constants[cur_token.typ],
+                                  cur_token.val))
         self.scan.get_next_token()
         return cur_token
 
@@ -123,7 +124,7 @@ class Parser():
             TokenType.LPAREN,
             'conditional must be parenthesized'
         )
-        cond = self.expression();
+        cond = self.expression()
         self.expect(
             TokenType.RPAREN,
             'missing closing parenthesis in while condition'
@@ -145,7 +146,7 @@ class Parser():
             TokenType.LPAREN,
             'conditional must be parenthesized'
         )
-        cond = self.expression();
+        cond = self.expression()
         self.expect(
             TokenType.RPAREN,
             'missing closing parenthesis in if condition'
