@@ -56,9 +56,16 @@ class Parser():
 
     def parse(self):
         """Construct our parse tree and save it to self.tree"""
-        tree = self.statement()
+        tree = self.dec_list()
         self.expect(TokenType.EOF, 'unexpected token at end of file')
         self.tree = tree
+
+    def dec_list(self):
+        """Parse a top-level declaration list"""
+        dec = self.declaration()
+        if self.cur_token().typ in TokenType.DataTypes:
+            dec.nxt = self.dec_list()
+        return dec
 
     def dec_header(self):
         """Parses the type and name (e.g. `int x`) of declarations."""
@@ -83,16 +90,20 @@ class Parser():
         """
         v = None
         if self.cur_token().typ in TokenType.DataTypes:
-            v = self.var_dec()
+            v = self.declaration()
+            if v.kind not in (ParseTreeNode.VAR_DEC, ParseTreeNode.ARR_DEC):
+                raise ParseException(
+                    'Local declaration must be variable or array'
+                )
             v.nxt = self.local_decs()
         return v
 
-    def var_dec(self):
-        """Parses the variable and array declarations"""
+    def declaration(self):
+        """Parses variable, array, and function declarations."""
         typ, name, is_pointer = self.dec_header()
         if not is_pointer:
-            # check for array declaration
             if self.cur_token().typ is TokenType.LSQUARE:
+                # array declaration
                 self.consume()
                 size = self.expect(
                     TokenType.NUM,
@@ -113,10 +124,70 @@ class Parser():
                     typ=typ,
                     size=size
                 )
+            if self.cur_token().typ is TokenType.LPAREN:
+                # function declaration
+                self.consume()
+                args = self.params()
+                self.expect(
+                    TokenType.RPAREN,
+                    'Missing closing paren in function declaration'
+                )
+                body = self.compound_statement()
+                return FunDecNode(
+                    kind=ParseTreeNode.FUN_DEC,
+                    line_number=typ.line,
+                    name=name,
+                    typ=typ,
+                    params=args,
+                    body=body
+                )
         self.expect(
             TokenType.SEMI,
             'Missing semicolon at end of variable declaration'
         )
+        return VarDecNode(
+            kind=ParseTreeNode.VAR_DEC,
+            line_number=typ.line,
+            name=name,
+            typ=typ,
+            is_pointer=is_pointer
+        )
+
+    def params(self):
+        """Parses function params."""
+        if self.cur_token().typ is TokenType.VOID:
+            self.consume()
+            return None
+        return self.param_list()
+
+    def param_list(self):
+        """Parses a function's parameter list (returns a declaration node
+        who'se self.nxt field may be another declaration node).
+
+        """
+        p1 = self.param()
+        if self.cur_token().typ is TokenType.COMMA:
+            self.consume()
+            p1.nxt = self.param_list()
+        return p1
+
+    def param(self):
+        """Parses a function parameter."""
+        typ, name, is_pointer = self.dec_header()
+        if not is_pointer and self.cur_token().typ is TokenType.LSQUARE:
+            # array declaration
+            self.consume()
+            self.expect(
+                TokenType.RSQUARE,
+                'Array parameter must end in closing bracket'
+            )
+            return ArrDecNode(
+                kind=ParseTreeNode.ARR_DEC,
+                line_number=typ.line,
+                name=name,
+                typ=typ,
+                size=None
+            )
         return VarDecNode(
             kind=ParseTreeNode.VAR_DEC,
             line_number=typ.line,

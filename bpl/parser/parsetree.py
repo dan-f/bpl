@@ -107,6 +107,15 @@ class FunDecNode(DecNode):
         self.params = params
         self.body = body
 
+    def __str__(self):
+        return '%s, Name: %s, Type: [%s]\nParams:\n%s\nBody:\n%s\n%s' % (
+            self.base_str(),
+            self.name,
+            self.typ,
+            indent(self.params),
+            indent(self.body),
+            self.nxt
+        )
 
 class VarDecNode(DecNode):
     """Represents a variable declaration node in the parse tree."""
