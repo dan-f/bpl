@@ -11,5 +11,6 @@ int main(int *x, string y[], void z)
   int a;
   void *x;
   string z[45];
-  x = 3;
+  write("foo");
+  writeln();
 }

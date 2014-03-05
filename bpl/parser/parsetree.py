@@ -14,18 +14,19 @@ class ParseTreeNode():
     WHILE_STMT = 6
     RET_STMT = 7
     WRITE_STMT = 8
-    VAR_EXP = 9
-    ARR_EXP = 10
-    ADDR_EXP = 11
-    DEREF_EXP = 12
-    FUN_CALL_EXP = 13
-    READ_EXP = 14
-    ASSIGN_EXP = 15
-    COMP_EXP = 16
-    ARITH_EXP = 17
-    NEG_EXP = 18
-    INT_EXP = 19
-    STR_EXP = 20
+    WRITELN_STMT = 9
+    VAR_EXP = 10
+    ARR_EXP = 11
+    ADDR_EXP = 12
+    DEREF_EXP = 13
+    FUN_CALL_EXP = 14
+    READ_EXP = 15
+    ASSIGN_EXP = 16
+    COMP_EXP = 17
+    ARITH_EXP = 18
+    NEG_EXP = 19
+    INT_EXP = 20
+    STR_EXP = 21
 
     constants = {
         0: 'FUN_DEC',
@@ -37,18 +38,19 @@ class ParseTreeNode():
         6: 'WHILE_STMT',
         7: 'RET_STMT',
         8: 'WRITE_STMT',
-        9: 'VAR_EXP',
-        10: 'ARR_EXP',
-        11: 'ADDR_EXP',
-        12: 'DEREF_EXP',
-        13: 'FUN_CALL_EXP',
-        14: 'READ_EXP',
-        15: 'ASSIGN_EXP',
-        16: 'COMP_EXP',
-        17: 'ARITH_EXP',
-        18: 'NEG_EXP',
-        19: 'INT_EXP',
-        20: 'STR_EXP'
+        9: 'WRITELN_STMT',
+        10: 'VAR_EXP',
+        11: 'ARR_EXP',
+        12: 'ADDR_EXP',
+        13: 'DEREF_EXP',
+        14: 'FUN_CALL_EXP',
+        15: 'READ_EXP',
+        16: 'ASSIGN_EXP',
+        17: 'COMP_EXP',
+        18: 'ARITH_EXP',
+        19: 'NEG_EXP',
+        20: 'INT_EXP',
+        21: 'STR_EXP'
     }
 
     def __init__(self, kind, line_number, nxt=None):
@@ -116,6 +118,7 @@ class FunDecNode(DecNode):
             indent(self.body),
             self.nxt
         )
+
 
 class VarDecNode(DecNode):
     """Represents a variable declaration node in the parse tree."""
@@ -298,18 +301,20 @@ class WriteStmtNode(StmtNode):
         StmtNode.__init__(self, kind, line_number, nxt)
         self.expr = expr
 
+    def __str__(self):
+        return '%s\nValue:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.expr),
+            self.nxt
+        )
+
 
 class WritelnStmtNode(StmtNode):
     """Represents a writeln statement node in the parse tree."""
 
-    def __init__(self, kind, line_number, val, nxt=None):
-        """Initializes a writeln statement node.
-
-        :val: The expression who'se value we're writing.
-
-        """
+    def __init__(self, kind, line_number, nxt=None):
+        """Initializes a writeln statement node."""
         StmtNode.__init__(self, kind, line_number, nxt)
-        self.val = val
 
 
 ######################

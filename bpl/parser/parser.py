@@ -2,10 +2,6 @@ from bpl.parser.parsetree import *
 from bpl.scanner.scanner import Scanner
 from bpl.scanner.token import TokenType
 
-# TODO:
-#  - finish documentation
-#  - refactor errors w/ line numbers
-
 
 class Parser():
     def __init__(self, filename, tree=None):
@@ -206,6 +202,10 @@ class Parser():
             return self.if_statement()
         elif self.cur_token().typ is TokenType.RETURN:
             return self.return_statement()
+        elif self.cur_token().typ is TokenType.WRITE:
+            return self.write_statement()
+        elif self.cur_token().typ is TokenType.WRITELN:
+            return self.writeln_statement()
         else:
             return self.expression_statement()
 
@@ -279,7 +279,7 @@ class Parser():
         )
 
     def return_statement(self):
-        """Parses a return statement"""
+        """Parses a return statement."""
         ret_token = self.expect(
             TokenType.RETURN,
             'Return statement must begin with \"return\"'
@@ -301,6 +301,55 @@ class Parser():
             line_number=ret_token.line,
             val=exp
         )
+
+    def write_statement(self):
+        """Parses a write statement."""
+        write_token = self.expect(
+            TokenType.WRITE,
+            'Write statement must beegin with \"write\"'
+        )
+        self.expect(
+            TokenType.LPAREN,
+            'Missing open paren after \"write\"'
+        )
+        exp = self.expression()
+        self.expect(
+            TokenType.RPAREN,
+            'Missing close paren after write statement\'s expression'
+        )
+        self.expect(
+            TokenType.SEMI,
+            'Missing semicolon at end of write statement'
+        )
+        return WriteStmtNode(
+            kind=ParseTreeNode.WRITE_STMT,
+            line_number=write_token.line,
+            expr=exp
+        )
+
+    def writeln_statement(self):
+        """Parses a writeln statement"""
+        write_token = self.expect(
+            TokenType.WRITELN,
+            'Writeln statement must beegin with \"writeln\"'
+        )
+        self.expect(
+            TokenType.LPAREN,
+            'Missing open paren after \"write\"'
+        )
+        self.expect(
+            TokenType.RPAREN,
+            'Missing close paren after write statement\'s expression'
+        )
+        self.expect(
+            TokenType.SEMI,
+            'Missing semicolon at end of write statement'
+        )
+        return WritelnStmtNode(
+            kind=ParseTreeNode.WRITELN_STMT,
+            line_number=write_token.line
+        )
+
 
     def statement_list(self):
         """Parses a statement list (returns a statement node who'se self.nxt
