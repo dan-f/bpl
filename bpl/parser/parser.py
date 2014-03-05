@@ -66,11 +66,15 @@ class Parser():
             TokenType.INT, TokenType.STRING, TokenType.VOID,
             'unexpected type identifier'
         )
+        is_pointer = False
+        if self.cur_token().typ is TokenType.STAR:
+            is_pointer = True
+            self.consume()
         var = self.expect(
             TokenType.ID,
             'unexpected variable name'
-        )
-        return typ, var.val
+        ).val
+        return typ, var, is_pointer
 
     def local_decs(self):
         """Parses a list of local variable declarations (returns a VarDecNode
@@ -84,18 +88,41 @@ class Parser():
         return v
 
     def var_dec(self):
-        """Parses the type and name of variable and function declarations"""
-        typ, name = self.dec_header()
+        """Parses the variable and array declarations"""
+        typ, name, is_pointer = self.dec_header()
+        if not is_pointer:
+            # check for array declaration
+            if self.cur_token().typ is TokenType.LSQUARE:
+                self.consume()
+                size = self.expect(
+                    TokenType.NUM,
+                    'Array declaration must declare capacity as a number'
+                ).val
+                self.expect(
+                    TokenType.RSQUARE,
+                    'Missing closing bracket for array declaration'
+                )
+                self.expect(
+                    TokenType.SEMI,
+                    'Missing semicolon at end of array declaration'
+                )
+                return ArrDecNode(
+                    kind=ParseTreeNode.ARR_DEC,
+                    line_number=typ.line,
+                    name=name,
+                    typ=typ,
+                    size=size
+                )
         self.expect(
             TokenType.SEMI,
-            'variable declaration must end in semicolon'
+            'Missing semicolon at end of variable declaration'
         )
         return VarDecNode(
             kind=ParseTreeNode.VAR_DEC,
             line_number=typ.line,
             name=name,
             typ=typ,
-            is_pointer=False  # TODO: support pointers
+            is_pointer=is_pointer
         )
 
     def statement(self):

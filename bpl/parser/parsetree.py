@@ -121,15 +121,16 @@ class VarDecNode(DecNode):
         self.is_pointer = is_pointer
 
     def __str__(self):
-        return '%s, Name: %s, Type: %s\n%s' % (
+        return '%s%s, Name: %s, Type: [%s]\n%s' % (
             self.base_str(),
+            ' *pointer*' if self.is_pointer else '',
             self.name,
             self.typ,
             self.nxt
         )
 
 
-class ArrayDecNode(VarDecNode):
+class ArrDecNode(VarDecNode):
     """Represents an array declaration node in the parse tree."""
 
     def __init__(self, kind, line_number, name, typ, size, nxt=None):
@@ -142,6 +143,15 @@ class ArrayDecNode(VarDecNode):
             self, kind, line_number, name, typ, is_pointer=False, nxt=nxt
         )
         self.size = size
+
+    def __str__(self):
+        return '%s, Name: %s, Type: [%s], Size: %s\n%s' % (
+            self.base_str(),
+            self.name,
+            self.typ,
+            self.size,
+            self.nxt
+        )
 
 
 #####################
