@@ -204,6 +204,8 @@ class Parser():
             return self.while_statement()
         elif self.cur_token().typ is TokenType.IF:
             return self.if_statement()
+        elif self.cur_token().typ is TokenType.RETURN:
+            return self.return_statement()
         else:
             return self.expression_statement()
 
@@ -274,6 +276,30 @@ class Parser():
             cond=cond,
             true_body=true_body,
             false_body=false_body
+        )
+
+    def return_statement(self):
+        """Parses a return statement"""
+        ret_token = self.expect(
+            TokenType.RETURN,
+            'Return statement must begin with \"return\"'
+        )
+        if self.cur_token().typ is TokenType.SEMI:
+            self.consume()
+            return RetStmtNode(
+                kind=ParseTreeNode.RET_STMT,
+                line_number=ret_token.line,
+                val=None
+            )
+        exp = self.expression()
+        self.expect(
+            TokenType.SEMI,
+            'Return statement must end in semicolon'
+        )
+        return RetStmtNode(
+            kind=ParseTreeNode.RET_STMT,
+            line_number=ret_token.line,
+            val=exp
         )
 
     def statement_list(self):

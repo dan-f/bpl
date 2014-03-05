@@ -279,6 +279,12 @@ class RetStmtNode(StmtNode):
         StmtNode.__init__(self, kind, line_number, nxt)
         self.val = val
 
+    def __str__(self):
+        return '%s\nReturn Value:\n%s\n%s' % (
+            self.base_str(),
+            indent(self.val),
+            self.nxt
+        )
 
 class WriteStmtNode(StmtNode):
     """Represents a write statement node in the parse tree."""
