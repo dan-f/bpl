@@ -110,7 +110,7 @@ class FunDecNode(DecNode):
         self.body = body
 
     def __str__(self):
-        return '%s, Name: %s, Type: [%s]\nParams:\n%s\nBody:\n%s\n%s' % (
+        return '%s, Name: %s, Return Type: [%s]\nParams:\n%s\nBody:\n%s\n%s' % (
             self.base_str(),
             self.name,
             self.typ,
