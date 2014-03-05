@@ -19,8 +19,13 @@ class Scanner():
         self.tokens = self._next_token_gen()
 
     def get_next_token(self):
-        """Grabs the next token from :tokens: and saves it to :next_token:"""
-        self.next_token = next(self.tokens)
+        """Grabs the next token from :tokens: and saves it to :next_token:.
+        If :tokens: is empty, just set :next_token: to None.
+        """
+        try:
+            self.next_token = next(self.tokens)
+        except StopIteration:
+            pass
 
     def _next_token_gen(self):
         """Returns a generator to iterate over Token objects for every token in
@@ -147,14 +152,26 @@ class Scanner():
                         cur_str = ''
                         state = START
 
-            # nothing left in the buffer.  Make sure we've closed our
-            # quoted strings/comments
+            # Nothing left in the buffer.  Check for any errors
+            # (unclosed strings/comments or unknown Tokens) and return
+            # remaining token, if any.
             if state == STRLIT:
                 raise Exception('%s:%d:%d: Unclosed string literal'
                                 % (self.filename, line, i - line_begin))
             elif state == COMMENT:
-                print('i: %d, line_begin: %d' % (i, line_begin))
                 raise Exception('%s:%d:%d: Unclosed comment'
                                 % (self.filename, line, i - line_begin))
-            else:
-                yield Token(TokenType.EOF, 'EOF', line)
+            elif state == KEY_ID:
+                if cur_str in TokenType.Keywords:
+                    yield Token(TokenType.Keywords[cur_str], cur_str, line)
+                else:
+                    yield Token(TokenType.ID, cur_str, line)
+            elif state == SYMBOL:
+                if cur_str in TokenType.Symbols:
+                    yield Token(TokenType.Symbols[cur_str], cur_str, line)
+                else:
+                    raise Exception('%s:%d:%d: Unknown Token'
+                                    % (self.filename, line, i - line_begin))
+            elif state == NUMBER:
+                yield Token(TokenType.NUM, cur_str, line)
+            yield Token(TokenType.EOF, 'EOF', line)
