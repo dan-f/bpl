@@ -354,7 +354,7 @@ class OpExpNode(ExpNode):
         self.r_exp = r_exp
 
     def __str__(self):
-        return '%s, Operator: %s\nLeft Expression:\n%s\nRight Expression:\n%s\n%s' % (
+        return '%s, Operator: [%s]\nLeft Expression:\n%s\nRight Expression:\n%s\n%s' % (
             self.base_str(),
             self.op,
             indent(self.l_exp),
