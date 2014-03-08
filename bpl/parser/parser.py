@@ -350,7 +350,6 @@ class Parser():
             line_number=write_token.line
         )
 
-
     def statement_list(self):
         """Parses a statement list (returns a statement node who'se self.nxt
         field may be another statement).
@@ -430,7 +429,7 @@ class Parser():
             op = self.consume()
             t1 = OpExpNode(
                 kind=ParseTreeNode.ARITH_EXP,
-                line_number = t.line_number,
+                line_number=t.line_number,
                 op=op,
                 l_exp=t,
                 r_exp=self.T()
