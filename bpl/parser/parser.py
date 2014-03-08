@@ -25,12 +25,14 @@ class Parser():
         message = args[-1]
         token_types = args[:-1]
         if current_token.typ not in token_types:
-            raise ParseException('%s\nExpected %s, but got %s: \"%s\"' %
-                                 (message,
+            raise ParseException('%s:%d: Expected %s, but got %s: \"%s\"\n%s' %
+                                 (self.scan.filename,
+                                  self.cur_token().line,
                                   [TokenType.constants[token_type]
                                    for token_type in token_types],
                                   TokenType.constants[current_token.typ],
-                                  current_token.val))
+                                  current_token.val,
+                                  message))
         self.consume()
         return current_token
 
@@ -89,7 +91,10 @@ class Parser():
             v = self.declaration()
             if v.kind not in (ParseTreeNode.VAR_DEC, ParseTreeNode.ARR_DEC):
                 raise ParseException(
-                    'Local declaration must be variable or array'
+                    '%s:%d: Local declaration must be variable or array' % (
+                        self.scan.filename,
+                        v.line_number
+                    )
                 )
             v.nxt = self.local_decs()
         return v
@@ -388,8 +393,11 @@ class Parser():
                                       ParseTreeNode.ARR_EXP,
                                       ParseTreeNode.DEREF_EXP):
                 raise ParseException(
-                    'Left-hand side of assignment expression must be a \
-                    variable, array, or dereference expression'
+                    '%s:%d: Cannot assign to %s' % (
+                        self.scan.filename,
+                        first_exp.line_number,
+                        ParseTreeNode.constants[first_exp.kind]
+                    )
                 )
             op = self.consume()
             next_exp = self.expression()
@@ -573,8 +581,11 @@ class Parser():
             return exp
         # Not looking at a factor!
         raise ParseException(
-            'Unexpected token parsing factor: %s' %
-            self.cur_token()
+            '%s:%d: Unexpected token parsing factor: %s' % (
+                self.scan.filename,
+                self.cur_token().line_number,
+                self.cur_token()
+            )
         )
 
     def args(self):
