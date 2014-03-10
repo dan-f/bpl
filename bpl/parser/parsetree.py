@@ -71,8 +71,16 @@ class ParseTreeNode():
             self.line_number
         )
 
+    def to_string(self):
+        return '%s\n' % self.base_str()
+
     def __str__(self):
-        return '%s\n%s' % (self.base_str(), self.nxt)
+        ret = ''
+        cur = self
+        while cur is not None:
+            ret += cur.to_string()
+            cur = cur.nxt
+        return ret
 
 
 #######################
@@ -109,14 +117,13 @@ class FunDecNode(DecNode):
         self.params = params
         self.body = body
 
-    def __str__(self):
-        return '%s, Name: %s, Return Type: [%s]\nParams:\n%s\nBody:\n%s\n%s' % (
+    def to_string(self):
+        return '%s, Name: %s, Return Type: [%s]\nParams:\n%s\nBody:\n%s\n' % (
             self.base_str(),
             self.name,
             self.typ,
             indent(self.params),
-            indent(self.body),
-            self.nxt
+            indent(self.body)
         )
 
 
@@ -132,13 +139,12 @@ class VarDecNode(DecNode):
         DecNode.__init__(self, kind, line_number, name, typ, nxt)
         self.is_pointer = is_pointer
 
-    def __str__(self):
-        return '%s%s, Name: %s, Type: [%s]\n%s' % (
+    def to_string(self):
+        return '%s%s, Name: %s, Type: [%s]\n' % (
             self.base_str(),
             ' *pointer*' if self.is_pointer else '',
             self.name,
-            self.typ,
-            self.nxt
+            self.typ
         )
 
 
@@ -156,13 +162,12 @@ class ArrDecNode(VarDecNode):
         )
         self.size = size
 
-    def __str__(self):
-        return '%s, Name: %s, Type: [%s], Size: %s\n%s' % (
+    def to_string(self):
+        return '%s, Name: %s, Type: [%s], Size: %s\n' % (
             self.base_str(),
             self.name,
             self.typ,
-            self.size,
-            self.nxt
+            self.size
         )
 
 
@@ -189,11 +194,10 @@ class ExpStmtNode(StmtNode):
         StmtNode.__init__(self, kind, line_number, nxt)
         self.expr = expr
 
-    def __str__(self):
-        return '%s\nExpression:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nExpression:\n%s\n' % (
             self.base_str(),
-            indent(self.expr),
-            self.nxt
+            indent(self.expr)
         )
 
 
@@ -213,13 +217,12 @@ class IfStmtNode(StmtNode):
         self.true_body = true_body
         self.false_body = false_body
 
-    def __str__(self):
-        return '%s\nCondition:\n%s\nTrue Body:\n%s\nFalse Body:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nCondition:\n%s\nTrue Body:\n%s\nFalse Body:\n%s\n' % (
             self.base_str(),
             indent(self.cond),
             indent(self.true_body),
-            indent(self.false_body),
-            self.nxt
+            indent(self.false_body)
         )
 
 
@@ -237,12 +240,11 @@ class WhileStmtNode(StmtNode):
         self.cond = cond
         self.body = body
 
-    def __str__(self):
-        return '%s\nCondition:\n%s\nBody:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nCondition:\n%s\nBody:\n%s\n' % (
             self.base_str(),
             indent(self.cond),
-            indent(self.body),
-            self.nxt
+            indent(self.body)
         )
 
 
@@ -261,12 +263,11 @@ class CompStmtNode(StmtNode):
         self.local_decs = local_decs
         self.stmt_list = stmt_list
 
-    def __str__(self):
-        return '%s\nLocal Declarations:\n%s\nStatement List:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nLocal Declarations:\n%s\nStatement List:\n%s\n' % (
             self.base_str(),
             indent(self.local_decs),
-            indent(self.stmt_list),
-            self.nxt
+            indent(self.stmt_list)
         )
 
 
@@ -282,11 +283,10 @@ class RetStmtNode(StmtNode):
         StmtNode.__init__(self, kind, line_number, nxt)
         self.val = val
 
-    def __str__(self):
-        return '%s\nReturn Value:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nReturn Value:\n%s\n' % (
             self.base_str(),
-            indent(self.val),
-            self.nxt
+            indent(self.val)
         )
 
 class WriteStmtNode(StmtNode):
@@ -301,11 +301,10 @@ class WriteStmtNode(StmtNode):
         StmtNode.__init__(self, kind, line_number, nxt)
         self.expr = expr
 
-    def __str__(self):
-        return '%s\nValue:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nValue:\n%s\n' % (
             self.base_str(),
-            indent(self.expr),
-            self.nxt
+            indent(self.expr)
         )
 
 
@@ -341,8 +340,8 @@ class IntExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.val = val
 
-    def __str__(self):
-        return '%s, Value: %s\n%s' % (self.base_str(), self.val, self.nxt)
+    def to_string(self):
+        return '%s, Value: %s\n' % (self.base_str(), self.val)
 
 
 class StrExpNode(ExpNode):
@@ -357,8 +356,8 @@ class StrExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.val = val
 
-    def __str__(self):
-        return '%s, Value: \"%s\"\n%s' % (self.base_str(), self.val, self.nxt)
+    def to_string(self):
+        return '%s, Value: \"%s\"\n' % (self.base_str(), self.val)
 
 
 class OpExpNode(ExpNode):
@@ -383,13 +382,12 @@ class OpExpNode(ExpNode):
         self.l_exp = l_exp
         self.r_exp = r_exp
 
-    def __str__(self):
-        return '%s, Operator: [%s]\nLeft Expression:\n%s\nRight Expression:\n%s\n%s' % (
+    def to_string(self):
+        return '%s, Operator: [%s]\nLeft Expression:\n%s\nRight Expression:\n%s\n' % (
             self.base_str(),
             self.op,
             indent(self.l_exp),
-            indent(self.r_exp),
-            self.nxt
+            indent(self.r_exp)
         )
 
 
@@ -408,12 +406,11 @@ class FunCallExpNode(ExpNode):
         self.name = name
         self.params = params
 
-    def __str__(self):
-        return '%s, Name: %s\nParams:\n%s\n%s' % (
+    def to_string(self):
+        return '%s, Name: %s\nArguments:\n%s\n' % (
             self.base_str(),
             self.name,
-            indent(self.params),
-            self.nxt
+            indent(self.params)
         )
 
 
@@ -437,8 +434,8 @@ class VarExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.name = name
 
-    def __str__(self):
-        return '%s, Name: %s\n%s' % (self.base_str(), self.name, self.nxt)
+    def to_string(self):
+        return '%s, Name: %s\n' % (self.base_str(), self.name)
 
 
 class ArrExpNode(ExpNode):
@@ -455,9 +452,9 @@ class ArrExpNode(ExpNode):
         self.name = name
         self.index = index
 
-    def __str__(self):
-        return '%s, Name: %s\nIndex:\n%s\n%s' % (
-            self.base_str(), self.name, indent(self.index), self.nxt
+    def to_string(self):
+        return '%s, Name: %s\nIndex:\n%s\n' % (
+            self.base_str(), self.name, indent(self.index)
         )
 
 
@@ -473,9 +470,9 @@ class AddrExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.exp = exp
 
-    def __str__(self):
-        return '%s\nExpression:\n%s\n%s' % (
-            self.base_str(), indent(self.exp), self.nxt
+    def to_string(self):
+        return '%s\nExpression:\n%s\n' % (
+            self.base_str(), indent(self.exp)
         )
 
 
@@ -491,9 +488,9 @@ class DerefExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.exp = exp
 
-    def __str__(self):
-        return '%s\nExpression:\n%s\n%s' % (
-            self.base_str(), indent(self.exp), self.nxt
+    def to_string(self):
+        return '%s\nExpression:\n%s\n' % (
+            self.base_str(), indent(self.exp)
         )
 
 
@@ -509,11 +506,10 @@ class NegExpNode(ExpNode):
         ExpNode.__init__(self, kind, line_number, nxt)
         self.exp = exp
 
-    def __str__(self):
-        return '%s\nExpression:\n%s\n%s' % (
+    def to_string(self):
+        return '%s\nExpression:\n%s\n' % (
             self.base_str(),
-            indent(self.exp),
-            self.nxt
+            indent(self.exp)
         )
 
 

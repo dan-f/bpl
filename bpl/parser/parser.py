@@ -60,10 +60,12 @@ class Parser():
 
     def dec_list(self):
         """Parse a top-level declaration list"""
-        dec = self.declaration()
-        if self.cur_token().typ in TokenType.DataTypes:
-            dec.nxt = self.dec_list()
-        return dec
+        head = self.declaration()
+        cur = head
+        while self.cur_token().typ in TokenType.DataTypes:
+            cur.nxt = self.declaration()
+            cur = cur.nxt
+        return head
 
     def dec_header(self):
         """Parses the type and name (e.g. `int x`) of declarations."""
@@ -86,18 +88,25 @@ class Parser():
         who'se self.nxt field may be another statement).
 
         """
-        v = None
-        if self.cur_token().typ in TokenType.DataTypes:
-            v = self.declaration()
-            if v.kind not in (ParseTreeNode.VAR_DEC, ParseTreeNode.ARR_DEC):
+        def assert_local(dec):
+            """Verify that :dec: is a valid local declaration"""
+            if dec.kind not in (ParseTreeNode.VAR_DEC, ParseTreeNode.ARR_DEC):
                 raise ParseException(
                     '%s:%d: Local declaration must be variable or array' % (
                         self.scan.filename,
-                        v.line_number
+                        dec.line_number
                     )
                 )
-            v.nxt = self.local_decs()
-        return v
+            return dec
+
+        head = None
+        if self.cur_token().typ in TokenType.DataTypes:
+            head = assert_local(self.declaration())
+            cur = head
+            while self.cur_token().typ in TokenType.DataTypes:
+                cur.nxt = assert_local(self.declaration())
+                cur = cur.nxt
+        return head
 
     def declaration(self):
         """Parses variable, array, and function declarations."""
@@ -166,11 +175,13 @@ class Parser():
         who'se self.nxt field may be another declaration node).
 
         """
-        p1 = self.param()
-        if self.cur_token().typ is TokenType.COMMA:
+        head = self.param()
+        cur = head
+        while self.cur_token().typ is TokenType.COMMA:
             self.consume()
-            p1.nxt = self.param_list()
-        return p1
+            cur.nxt = self.param_list()
+            cur = cur.nxt
+        return head
 
     def param(self):
         """Parses a function parameter."""
@@ -311,7 +322,7 @@ class Parser():
         """Parses a write statement."""
         write_token = self.expect(
             TokenType.WRITE,
-            'Write statement must beegin with \"write\"'
+            'Write statement must begin with \"write\"'
         )
         self.expect(
             TokenType.LPAREN,
@@ -336,19 +347,19 @@ class Parser():
         """Parses a writeln statement"""
         write_token = self.expect(
             TokenType.WRITELN,
-            'Writeln statement must beegin with \"writeln\"'
+            'Writeln statement must begin with \"writeln\"'
         )
         self.expect(
             TokenType.LPAREN,
-            'Missing open paren after \"write\"'
+            'Missing open paren after \"writeln\"'
         )
         self.expect(
             TokenType.RPAREN,
-            'Missing close paren after write statement\'s expression'
+            'Writeln statement takes no arguments'
         )
         self.expect(
             TokenType.SEMI,
-            'Missing semicolon at end of write statement'
+            'Missing semicolon at end of writeln statement'
         )
         return WritelnStmtNode(
             kind=ParseTreeNode.WRITELN_STMT,
@@ -360,11 +371,14 @@ class Parser():
         field may be another statement).
 
         """
-        stmt = None
+        head = None
         if self.cur_token().typ != TokenType.RCURLY:
-            stmt = self.statement()
-            stmt.nxt = self.statement_list()
-        return stmt
+            head = self.statement()
+            cur = head
+            while self.cur_token().typ != TokenType.RCURLY:
+                cur.nxt = self.statement_list()
+                cur = cur.nxt
+        return head
 
     def expression_statement(self):
         """Parses an expression statement."""
@@ -589,22 +603,24 @@ class Parser():
         )
 
     def args(self):
+        """Parse a function's arguments, if any."""
         if self.cur_token().typ is TokenType.RPAREN:
             # empty args list
             return None
         return self.args_list()
 
     def args_list(self):
-        arg = self.expression()
-        nxt = None
-        if self.cur_token().typ is TokenType.COMMA:
-            # consume the comma, and recursively build up our args list
+        """Parse a list of function arguments."""
+        head = self.expression()
+        cur = head
+        while self.cur_token().typ is TokenType.COMMA:
             self.consume()
-            nxt = self.args_list()
-        arg.nxt = nxt
-        return arg
+            cur.nxt = self.args_list()
+            cur = cur.nxt
+        return head
 
     def var(self):
+        """Parse a variable expression."""
         name = self.expect(TokenType.ID, 'var expression must be an ID')
         return VarExpNode(
             kind=ParseTreeNode.VAR_EXP,
