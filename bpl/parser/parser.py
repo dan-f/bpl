@@ -597,7 +597,7 @@ class Parser():
         raise ParseException(
             '%s:%d: Unexpected token parsing factor: %s' % (
                 self.scan.filename,
-                self.cur_token().line_number,
+                self.cur_token().line,
                 self.cur_token()
             )
         )
