@@ -99,7 +99,7 @@ class TypeChecker():
             if self.DEBUG:
                 self.print_link(expr)
         elif expr.kind == ParseTreeNode.FUN_CALL_EXP:
-            self.link_to_dec(expr)
+            self.link_to_dec(expr, function=True)
             if self.DEBUG:
                 self.print_link(expr)
             map(self.link_expr, expr.params)
@@ -115,24 +115,33 @@ class TypeChecker():
         """Add :dec.name: -> :dec: to the top-level symbol table."""
         self.symbol_tables[-1][dec.name] = dec
 
-    def get_dec(self, symbol):
-        """Returns the original declaration of :symbol:, or None if not
-        found.
+    def get_dec(self, symbol, function=False):
+        """Returns the original declaration of :symbol:, or None if not found.
+        If :function: is True, we're being asked for a function
+        definition, so we look at the bottom of the stack for the
+        global function definition.
 
         """
-        # Search from top of stack downwards
-        for table in reversed(self.symbol_tables):
-            if symbol in table:
-                return table[symbol]
-        # Not found
-        return None
+        if function:
+            if symbol in self.symbol_tables[0]:
+                return self.symbol_tables[0][symbol]
+            else:
+                return None
+        else:
+            # Search from top of stack downwards
+            for table in reversed(self.symbol_tables):
+                if symbol in table:
+                    return table[symbol]
+            return None
 
-    def link_to_dec(self, node):
-        """Point :node.dec: to its original declaration.  If no declaration is
-        found in the symbol table, raise a TypeException.
+    def link_to_dec(self, node, function=False):
+        """Point :node.dec: to its original declaration.  If :function: is
+        True, we want to link to a function declaration in the global
+        symbol table.  If no declaration is found in the symbol table,
+        raise a TypeException.
 
         """
-        dec = self.get_dec(node.name)
+        dec = self.get_dec(node.name, function)
         if dec is not None:
             node.dec = dec
         else:
