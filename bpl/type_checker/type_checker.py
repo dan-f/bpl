@@ -4,6 +4,12 @@ from bpl.parser.parsetree import *
 
 class TypeChecker():
     def __init__(self, filename, tree, DEBUG=False):
+        """Initialize a type checker object.
+        :filename: The filename of the bpl program being compiled.
+        :tree: The AST produced by the bpl parser.
+        :DEBUG: When true, print debugging info during execution.
+
+        """
         self.filename = filename
         self.tree = tree
         self.DEBUG = DEBUG
@@ -12,6 +18,7 @@ class TypeChecker():
         self.symbol_tables = []
 
     def type_check(self):
+        """Type check the AST."""
         self.link_all_refs(self.tree)
         # bottom_up(tree)
 
@@ -64,7 +71,7 @@ class TypeChecker():
         declarations.  If :push_table: is True, push a new symbol
         table onto the global stack.  :push_table: should only be
         False when called by link_function, as the local declarations
-        'continue' the parameter declarations.
+        'continue' the same scope as the parameter declarations.
 
         """
         if push_table:
@@ -89,6 +96,7 @@ class TypeChecker():
             self.link_stmt(stmt.false_body)
 
     def link_while_stmt(self, stmt):
+        """Link references in a while statement."""
         self.link_expr(stmt.cond)
         self.link_stmt(stmt.body)
 
