@@ -214,13 +214,26 @@ class TypeChecker():
         if stmt.stmt_list is not None:
             map(lambda x: self.check_stmt(x, ret_type), stmt.stmt_list)
 
-    def check_ret_stmt(self, stmt, ret_type=None):
-        self.check_expr(stmt.val)
-        self.expect_type_match(
-            ret_type,
-            'Returned value does not match declared type',
-            stmt.val
-        )
+    def check_ret_stmt(self, stmt, ret_type):
+        """Type check a return statement :stmt:"""
+        ret_val = stmt.val
+        if ret_type == BPLType('VOID'):
+            if ret_val is not None:
+                raise TypeException('%s:%d: Cannot return value from void function.' %
+                                    (self.filename,
+                                     stmt.line_number))
+        else:
+            if ret_val is not None:
+                self.check_expr(stmt.val)
+                self.expect_type_match(
+                    ret_type,
+                    'Returned value does not match declared type',
+                    stmt.val
+                )
+            else:
+                raise TypeException('%s:%d: Missing return value.' %
+                                    (self.filename,
+                                     stmt.line_number))
 
     def check_expr(self, expr):
         """Verify type-correctness of generic expression :expr:"""
@@ -252,6 +265,10 @@ class TypeChecker():
     def check_var_expr(self, expr):
         """Verify type-correctness of var expression :expr:"""
         expr.typ = expr.dec.typ
+        if expr.typ == BPLType('VOID'):
+            raise TypeException('%s:%d: Cannot declare void variable.' %
+                                (self.filename,
+                                 expr.line_number))
         self.print_debug(
             expr.line_number,
             'Variable expression [%s] assigned type %s.' % (
@@ -268,6 +285,10 @@ class TypeChecker():
             expr.index
         )
         expr.typ = expr.dec.typ
+        if expr.typ == BPLType('VOID'):
+            raise TypeException('%s:%d: Cannot declare void array.' %
+                                (self.filename,
+                                 stmt.line_number))
         self.print_debug(
             expr.line_number,
             'Array expression [%s] assigned type %s.' % (
@@ -278,19 +299,19 @@ class TypeChecker():
     def check_addr_expr(self, expr):
         """Verify type-correctness of address expression :expr:"""
         self.check_expr(expr.exp)
-        # can't have pointers to pointers in BPL
-        if expr.exp.typ.is_pointer():
-            raise TypeException('%s:%d: Can\'t address type [%s].' %
-                                (self.filename,
-                                 expr.line_number,
-                                 expr.exp.typ))
-        else:
+        # can only address variables or array elements
+        if expr.exp.kind in (PTN.VAR_EXP, PTN.ARR_EXP):
             expr.typ = copy(expr.exp.typ)
             expr.typ.address()
             self.print_debug(
                 expr.line_number,
                 'Address expression assigned type %s.' % (expr.typ)
             )
+        else:
+            raise TypeException('%s:%d: Can\'t address type [%s].' %
+                                (self.filename,
+                                 expr.line_number,
+                                 expr.exp.typ))
 
     def check_deref_expr(self, expr):
         """Verify type-correctness of dereference expression :expr:"""

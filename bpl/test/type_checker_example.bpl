@@ -46,3 +46,5 @@ int statements(void) {
   /* return statement */
   return 3;
 }
+
+void foo(void) {return;}
