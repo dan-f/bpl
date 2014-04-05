@@ -193,13 +193,22 @@ class TypeChecker():
         elif stmt.kind == PTN.COMP_STMT:
             self.check_comp_stmt(stmt, ret_type)
         elif stmt.kind == PTN.IF_STMT:
-            pass
+            self.check_expr(stmt.cond)
+            self.check_stmt(stmt.true_body)
+            if stmt.false_body is not None:
+                self.check_stmt(stmt.false_body)
         elif stmt.kind == PTN.WHILE_STMT:
-            pass
+            self.check_expr(stmt.cond)
+            self.check_stmt(stmt.body)
         elif stmt.kind == PTN.RET_STMT:
             self.check_ret_stmt(stmt, ret_type)
         elif stmt.kind == PTN.WRITE_STMT:
-            pass
+            self.check_expr(stmt.expr)
+            if stmt.expr.typ not in (BPLType('INT'), BPLType('STRING')):
+                raise TypeException('%s:%d: Cannot write type [%s].' %
+                                    (self.filename,
+                                     stmt.line_number,
+                                     stmt.expr.typ))
 
     def check_comp_stmt(self, stmt, ret_type=None):
         if stmt.stmt_list is not None:

@@ -31,3 +31,18 @@ int expressions(int a, int b, int c) {
   /* string expression */
   "hello";
 }
+
+int statements(void) {
+  /* if statement */
+  if (1) {
+    /* write statements */
+    write("cool");
+    write(1);
+  } else {
+    int x;
+    /* expression statement */
+    x = 3;
+  }
+  /* return statement */
+  return 3;
+}
