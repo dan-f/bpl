@@ -176,7 +176,7 @@ class TypeChecker():
             self.tree)
 
     def check_func(self, func):
-        """Type check a function declaration"""
+        """Type check a function declaration :func:."""
         # make sure func.typ is equal to return value
         ret_type = func.typ
         self.check_comp_stmt(func.body, ret_type)
@@ -188,6 +188,11 @@ class TypeChecker():
         )
 
     def check_stmt(self, stmt, ret_type=None):
+        """Type check a generic statement :stmt:.  When :ret_type: is passed,
+        verify that the type of any return statement matches
+        :ret_type:.
+
+        """
         if stmt.kind == PTN.EXPR_STMT:
             self.check_expr(stmt.expr)
         elif stmt.kind == PTN.COMP_STMT:
@@ -211,6 +216,11 @@ class TypeChecker():
                                      stmt.expr.typ))
 
     def check_comp_stmt(self, stmt, ret_type=None):
+        """Type check a compound statement :stmt:.  When :ret_type: is passed,
+        verify that the type of any return statement matches
+        :ret_type:.
+
+        """
         if stmt.stmt_list is not None:
             map(lambda x: self.check_stmt(x, ret_type), stmt.stmt_list)
 
