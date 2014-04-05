@@ -1,3 +1,6 @@
+# org-mode files
+*.org
+
 # vim swap files
 *.swp
 

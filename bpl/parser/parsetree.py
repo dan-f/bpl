@@ -82,10 +82,17 @@ class ParseTreeNode():
             cur = cur.nxt
         return ret
 
+    def __iter__(self):
+        """Steps along linked lists in the AST."""
+        yield self
+        if self.nxt is not None:
+            for each in self.nxt:
+                yield each
 
 #######################
 #  Declaration Nodes  #
 #######################
+
 
 class DecNode(ParseTreeNode):
     """Represents a declaration node in the parse tree."""
@@ -170,10 +177,10 @@ class ArrDecNode(VarDecNode):
             self.size
         )
 
-
 #####################
 #  Statement Nodes  #
 #####################
+
 
 class StmtNode(ParseTreeNode):
     """Represents a statement node in the parse tree."""
@@ -288,6 +295,7 @@ class RetStmtNode(StmtNode):
             self.base_str(),
             indent(self.val)
         )
+
 
 class WriteStmtNode(StmtNode):
     """Represents a write statement node in the parse tree."""

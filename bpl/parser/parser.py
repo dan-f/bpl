@@ -69,19 +69,22 @@ class Parser():
 
     def dec_header(self):
         """Parses the type and name (e.g. `int x`) of declarations."""
-        typ = self.expect(
+        type_token = self.expect(
             TokenType.INT, TokenType.STRING, TokenType.VOID,
             'unexpected type identifier'
         )
+        line = type_token.line
+        typ = BPLType(TokenType.constants[type_token.typ])
         is_pointer = False
         if self.cur_token().typ is TokenType.STAR:
             is_pointer = True
+            typ.address()
             self.consume()
         var = self.expect(
             TokenType.ID,
             'unexpected variable name'
         ).val
-        return typ, var, is_pointer
+        return typ, var, is_pointer, line
 
     def local_decs(self):
         """Parses a list of local variable declarations (returns a VarDecNode
@@ -110,7 +113,7 @@ class Parser():
 
     def declaration(self):
         """Parses variable, array, and function declarations."""
-        typ, name, is_pointer = self.dec_header()
+        typ, name, is_pointer, line = self.dec_header()
         if not is_pointer:
             if self.cur_token().typ is TokenType.LSQUARE:
                 # array declaration
@@ -129,7 +132,7 @@ class Parser():
                 )
                 return ArrDecNode(
                     kind=ParseTreeNode.ARR_DEC,
-                    line_number=typ.line,
+                    line_number=line,
                     name=name,
                     typ=typ,
                     size=size
@@ -145,7 +148,7 @@ class Parser():
                 body = self.compound_statement()
                 return FunDecNode(
                     kind=ParseTreeNode.FUN_DEC,
-                    line_number=typ.line,
+                    line_number=line,
                     name=name,
                     typ=typ,
                     params=args,
@@ -157,7 +160,7 @@ class Parser():
         )
         return VarDecNode(
             kind=ParseTreeNode.VAR_DEC,
-            line_number=typ.line,
+            line_number=line,
             name=name,
             typ=typ,
             is_pointer=is_pointer
@@ -185,7 +188,7 @@ class Parser():
 
     def param(self):
         """Parses a function parameter."""
-        typ, name, is_pointer = self.dec_header()
+        typ, name, is_pointer, line = self.dec_header()
         if not is_pointer and self.cur_token().typ is TokenType.LSQUARE:
             # array declaration
             self.consume()
@@ -195,14 +198,14 @@ class Parser():
             )
             return ArrDecNode(
                 kind=ParseTreeNode.ARR_DEC,
-                line_number=typ.line,
+                line_number=line,
                 name=name,
                 typ=typ,
                 size=None
             )
         return VarDecNode(
             kind=ParseTreeNode.VAR_DEC,
-            line_number=typ.line,
+            line_number=line,
             name=name,
             typ=typ,
             is_pointer=is_pointer
@@ -597,7 +600,7 @@ class Parser():
         raise ParseException(
             '%s:%d: Unexpected token parsing factor: %s' % (
                 self.scan.filename,
-                self.cur_token().line_number,
+                self.cur_token().line,
                 self.cur_token()
             )
         )
@@ -627,6 +630,63 @@ class Parser():
             line=name.line,
             name=name.val
         )
+
+
+class BPLType():
+    """Represents the types in BPL"""
+    INT = 0
+    STRING = 1
+    VOID = 2
+    INT_PTR = 3
+    STR_PTR = 4
+    INT_ARR = 5
+    STR_ARR = 6
+
+    constants = {
+        0: "INT",
+        1: "STRING",
+        2: "VOID",
+        3: "INT_PTR",
+        4: "STR_PTR",
+        5: "INT_ARR",
+        6: "STR_ARR"
+    }
+
+    def __init__(self, type_string):
+        """Initialize this BPLType from a string describing it's type.'"""
+        if type_string == 'INT':
+            self.typ = self.INT
+        elif type_string == 'STRING':
+            self.typ = self.STRING
+        elif type_string == 'VOID':
+            self.typ = self.VOID
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.typ == other.typ
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        return '%s' % self.constants[self.typ]
+
+    def is_pointer(self):
+        return True if self.typ in (BPLType.INT_PTR, BPLType.STR_PTR) else False
+
+    def address(self):
+        if self.typ == self.INT:
+            self.typ = self.INT_PTR
+        elif self.typ == self.STRING:
+            self.typ = self.STR_PTR
+
+    def deref(self):
+        if self.typ == self.INT_PTR:
+            self.typ = self.INT
+        elif self.typ == self.STR_PTR:
+            self.typ = self.STRING
 
 
 class ParseException(Exception):
