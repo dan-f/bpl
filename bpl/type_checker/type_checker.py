@@ -123,6 +123,14 @@ class TypeChecker():
 
     def add_dec(self, dec):
         """Add :dec.name: -> :dec: to the top-level symbol table."""
+        # can't have an array declaration with size < 1
+        if dec.kind == PTN.ARR_DEC and dec.size < 1:
+            raise TypeException(
+                '%s:%d: Array declaration must have size of at least 1.' % (
+                    self.filename,
+                    dec.line_number
+                )
+            )
         self.symbol_tables[-1][dec.name] = dec
 
     def get_dec(self, symbol, function=False):

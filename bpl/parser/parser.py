@@ -118,10 +118,10 @@ class Parser():
             if self.cur_token().typ is TokenType.LSQUARE:
                 # array declaration
                 self.consume()
-                size = self.expect(
+                size = int(self.expect(
                     TokenType.NUM,
                     'Array declaration must declare capacity as a number'
-                ).val
+                ).val)
                 self.expect(
                     TokenType.RSQUARE,
                     'Missing closing bracket for array declaration'
