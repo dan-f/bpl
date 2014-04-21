@@ -114,9 +114,9 @@ class CodeGenerator():
         """
         # check for immediate mode
         if type(source) == int:
-            source = '${0}'.format(arg)
+            source = '${0}'.format(source)
         if type(dest) == int:
-            dest = '${0}'.format(arg)
+            dest = '${0}'.format(dest)
         # build instruction
         statement = '\t{0} {1}'.format(instr, source)
         if dest is not None:
