@@ -100,6 +100,22 @@ class CodeGenerator():
                     start_offset = self.assign_offsets_comp_stmt(body_stmt, start_offset)
         return start_offset
 
+    def write_header(self):
+        """Generate assembly header.  For now, just generates I/O string
+        declarations.
+
+        """
+        header = """\t.section .rodata
+\t.WriteIntString: .string "%d "
+\t.WritelnString: .string "\n"
+\t.WriteStringString: .string "%s "
+\t.ArrayOverflowString: .string "You fell off the end of an array.\n"
+\t.ReadIntString: .string "%d"
+\t.text
+\t.globl main
+"""
+        self.write_to_assembly(header)
+
     def write_line(self, instr, source, dest=None, comment=None):
         """Generate an assembly instruction with one or two operands.  Offset
         formatting is handled by Register* classes.  If :source: or
@@ -125,9 +141,12 @@ class CodeGenerator():
             statement += '\t# {0}\n'.format(comment)
         else:
             statement += '\n'
-        # append instruction to assembly file
+        self.write_to_assembly(statement)
+
+    def write_to_assembly(self, data):
+        """Appends :data: to assembly file."""
         with open(self.assembly_file, 'a') as f:
-            f.write(statement)
+            f.write(data)
 
     def print_debug(self, message):
         if self.DEBUG:
