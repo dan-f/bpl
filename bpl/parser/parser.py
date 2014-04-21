@@ -578,7 +578,7 @@ class Parser():
             return IntExpNode(
                 kind=ParseTreeNode.INT_EXP,
                 line_number=num.line,
-                val=num.val
+                val=int(num.val)
             )
         elif self.cur_token().typ is TokenType.STRLIT:
             # string expression

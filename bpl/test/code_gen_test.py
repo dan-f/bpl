@@ -16,4 +16,4 @@ if __name__ == '__main__':
         t = TypeChecker(p.filename, p.tree)
         t.type_check()
         c = CodeGenerator(t.filename, t.tree, DEBUG=True)
-        c.assign_offsets()
+        c.gen_all()
