@@ -1,3 +1,6 @@
+# assembly output
+*.s
+
 # org-mode files
 *.org
 
