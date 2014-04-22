@@ -179,29 +179,29 @@ class CodeGenerator():
             self.gen_arith_expr(expr)
 
     def gen_arith_expr(self, expr):
-            self.gen_expr(expr.l_exp)
-            self.write_instr('push', self.acc_64, comment='push LHS')
-            self.gen_expr(expr.r_exp)
-            # perform the arithmetic operation
-            if expr.op.typ == TokenType.PLUS:
-                self.write_instr('addl', self.sp_64.offset(0), self.acc_32, comment='perform addition')
-            elif expr.op.typ == TokenType.MINUS:
-                self.write_instr('subl', self.acc_32, self.sp_64.offset(0), comment='perform subtraction')
-                self.write_instr('movl', self.sp_64.offset(0), self.acc_32)
-            elif expr.op.typ == TokenType.STAR:
-                self.write_instr('imul', self.sp_64.offset(0), self.acc_32, comment='perform multiplication')
-            elif expr.op.typ in (TokenType.SLASH, TokenType.MOD):
-                # dividend is on top of stack, divisor is in accumulator
-                self.write_instr('movl', self.acc_32, self.div_32, comment='move divisor')
-                self.write_instr('movl', self.sp_64.offset(0), self.acc_32, comment='move dividend')
-                self.write_instr('cltq')
-                self.write_instr('cqto')
-                self.write_instr('idivl', self.div_32, comment='perform division')
-                # quotient is now in accumulator
-                if expr.op.typ == TokenType.MOD:
-                    # place remainder in accumulator
-                    self.write_instr('movl', self.rem_32, self.acc_32)
-            self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
+        self.gen_expr(expr.l_exp)
+        self.write_instr('push', self.acc_64, comment='push LHS')
+        self.gen_expr(expr.r_exp)
+        # perform the arithmetic operation
+        if expr.op.typ == TokenType.PLUS:
+            self.write_instr('addl', self.sp_64.offset(0), self.acc_32, comment='perform addition')
+        elif expr.op.typ == TokenType.MINUS:
+            self.write_instr('subl', self.acc_32, self.sp_64.offset(0), comment='perform subtraction')
+            self.write_instr('movl', self.sp_64.offset(0), self.acc_32)
+        elif expr.op.typ == TokenType.STAR:
+            self.write_instr('imul', self.sp_64.offset(0), self.acc_32, comment='perform multiplication')
+        elif expr.op.typ in (TokenType.SLASH, TokenType.MOD):
+            # dividend is on top of stack, divisor is in accumulator
+            self.write_instr('movl', self.acc_32, self.div_32, comment='move divisor')
+            self.write_instr('movl', self.sp_64.offset(0), self.acc_32, comment='move dividend')
+            self.write_instr('cltq')
+            self.write_instr('cqto')
+            self.write_instr('idivl', self.div_32, comment='perform division')
+            # quotient is now in accumulator
+            if expr.op.typ == TokenType.MOD:
+                # place remainder in accumulator
+                self.write_instr('movl', self.rem_32, self.acc_32)
+        self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
 
     def write_instr(self, instr, source=None, dest=None, comment=None):
         """Generate an assembly instruction with one or two operands.  Offset
