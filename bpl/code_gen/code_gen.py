@@ -227,7 +227,10 @@ class CodeGenerator():
         if dest is not None:
             statement += ', {0}'.format(dest)
         if comment is not None:
-            statement += '\t# {0}\n'.format(comment)
+            # want column 32
+            tab_len = 8
+            num_tabs = 1 + (32 - (tab_len + len(statement))) / tab_len
+            statement += '{0}# {1}\n'.format('\t' * num_tabs, comment)
         else:
             statement += '\n'
         self.write_to_assembly(statement)
