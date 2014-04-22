@@ -1,5 +1,6 @@
 from bpl.parser.parser import BPLType
 from bpl.parser.parsetree import ParseTreeNode as TN
+from bpl.scanner.token import TokenType
 
 
 def registers(name):
@@ -35,8 +36,11 @@ class CodeGenerator():
     fp_32, fp_64 = registers('bp') # frame pointer
     sp_32, sp_64 = registers('sp') # stack pointer
     acc_32, acc_64 = registers('ax') # accumulator
-    fmt_32, fmt_64 = registers('di') # format strings go here when printing
-    str_32, str_64 = registers('si') # strings to be printed go here
+    div_32, div_64 = registers('bx') # when dividing, put dividends here
+    rem_32, rem_64 = registers('dx') # when dividing, remainders end up here
+    fmt_32, fmt_64 = registers('di') # when printing, put format strings here
+    str_32, str_64 = registers('si') # when printing, put strings to be printed here
+
 
     # string labels for immediate use
     # TODO: clean this up
@@ -149,11 +153,11 @@ class CodeGenerator():
     def gen_func(self, func):
         """Generate code for a function tree node :func:."""
         self.write_label(func.name)
-        self.write_line('movq', self.sp_64, self.fp_64, 'move sp into fp')
-        self.write_line('subq', func.locals_size, self.sp_64, 'allocate local vars')
+        self.write_instr('movq', self.sp_64, self.fp_64, 'move sp into fp')
+        self.write_instr('subq', func.locals_size, self.sp_64, 'allocate local vars')
         self.gen_stmt(func.body)
-        self.write_line('addq', func.locals_size, self.sp_64, 'deallocate local vars')
-        self.write_line('ret')
+        self.write_instr('addq', func.locals_size, self.sp_64, 'deallocate local vars')
+        self.write_instr('ret')
 
     def gen_stmt(self, stmt):
         """Generate code for a statement tree node :stmt:."""
@@ -163,16 +167,43 @@ class CodeGenerator():
         elif stmt.kind == TN.WRITE_STMT:
             self.gen_expr(stmt.expr)
             if stmt.expr.typ == BPLType('INT'):
-                self.write_line('movq', self.acc_64, self.str_64, 'move val for printing')
-                self.write_line('movq', self.imm_str_labels['write_int'], self.fmt_64)
-                self.write_line('movq', 0, self.acc_64)
-                self.write_line('call', 'printf')
+                self.write_instr('movl', self.acc_32, self.str_32, 'move val for printing')
+                self.write_instr('movq', self.imm_str_labels['write_int'], self.fmt_64)
+                self.write_instr('movl', 0, self.acc_32)
+                self.write_instr('call', 'printf')
 
     def gen_expr(self, expr):
         if expr.kind == TN.INT_EXP:
-            self.write_line('movq', expr.val, self.acc_64)
+            self.write_instr('movq', expr.val, self.acc_64)
+        elif expr.kind == TN.ARITH_EXP:
+            self.gen_arith_expr(expr)
 
-    def write_line(self, instr, source=None, dest=None, comment=None):
+    def gen_arith_expr(self, expr):
+            self.gen_expr(expr.l_exp)
+            self.write_instr('push', self.acc_64, comment='push LHS')
+            self.gen_expr(expr.r_exp)
+            # perform the arithmetic operation
+            if expr.op.typ == TokenType.PLUS:
+                self.write_instr('addl', self.sp_64.offset(0), self.acc_32, comment='perform addition')
+            elif expr.op.typ == TokenType.MINUS:
+                self.write_instr('subl', self.acc_32, self.sp_64.offset(0), comment='perform subtraction')
+                self.write_instr('movl', self.sp_64.offset(0), self.acc_32)
+            elif expr.op.typ == TokenType.STAR:
+                self.write_instr('imul', self.sp_64.offset(0), self.acc_32, comment='perform multiplication')
+            elif expr.op.typ in (TokenType.SLASH, TokenType.MOD):
+                # dividend is on top of stack, divisor is in accumulator
+                self.write_instr('movl', self.acc_32, self.div_32, comment='move divisor')
+                self.write_instr('movl', self.sp_64.offset(0), self.acc_32, comment='move dividend')
+                self.write_instr('cltq')
+                self.write_instr('cqto')
+                self.write_instr('idivl', self.div_32, comment='perform division')
+                # quotient is now in accumulator
+                if expr.op.typ == TokenType.MOD:
+                    # place remainder in accumulator
+                    self.write_instr('movl', self.rem_32, self.acc_32)
+            self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
+
+    def write_instr(self, instr, source=None, dest=None, comment=None):
         """Generate an assembly instruction with one or two operands.  Offset
         formatting is handled by Register* classes.  If :source: or
         :dest: are integers, prepend a dollar to them for immediate
