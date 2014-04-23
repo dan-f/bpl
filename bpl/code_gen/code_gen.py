@@ -63,6 +63,7 @@ class CodeGenerator():
         self.tree = tree
         self.DEBUG = DEBUG
         self.assembly_file = '%s.s' % self.filename[:-4]
+        self._label_counter = 0
         with open(self.assembly_file, 'w') as f:
             f.truncate(0)
 
@@ -236,8 +237,14 @@ class CodeGenerator():
         self.write_to_assembly(statement)
 
     def write_label(self, label):
-        """Generate a label."""
+        """Write a label with name :label: to file."""
         self.write_to_assembly('{0}:\n'.format(label))
+
+    def new_label(self):
+        """Return a new, unique label name."""
+        label = '.L{0}'.format(self._label_counter)
+        self._label_counter += 1
+        return label
 
     def write_to_assembly(self, data):
         """Appends :data: to assembly file."""
