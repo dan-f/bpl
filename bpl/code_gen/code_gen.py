@@ -174,16 +174,31 @@ class CodeGenerator():
                 self.write_instr('call', 'printf')
 
     def gen_expr(self, expr):
+        """Generate code for an expression :expr:."""
         if expr.kind == TN.INT_EXP:
             self.write_instr('movq', expr.val, self.acc_64)
-        elif expr.kind == TN.ARITH_EXP:
-            self.gen_arith_expr(expr)
+        elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP, TN.ASSIGN_EXP):
+            self.gen_binary_expr(expr)
 
-    def gen_arith_expr(self, expr):
+    def gen_binary_expr(self, expr):
+        """Generate code for a binary expression :expr: (i.e. an OpExpNode).
+        This is either an arithmetic expression, a comparison
+        expression, or an assignment expression.
+
+        """
         self.gen_expr(expr.l_exp)
         self.write_instr('push', self.acc_64, comment='push LHS')
         self.gen_expr(expr.r_exp)
-        # perform the arithmetic operation
+        if expr.kind == TN.ARITH_EXP:
+            self.gen_arith_expr(expr)
+        elif expr.kind == TN.COMP_EXP:
+            self.gen_comp_expr(expr)
+        elif expr.kind == TN.ASSIGN_EXP:
+            pass
+        self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
+
+    def gen_arith_expr(self, expr):
+        """Generate code for an arithmetic expression"""
         if expr.op.typ == TokenType.PLUS:
             self.write_instr('addl', self.sp_64.offset(0), self.acc_32, comment='perform addition')
         elif expr.op.typ == TokenType.MINUS:
@@ -202,10 +217,39 @@ class CodeGenerator():
             if expr.op.typ == TokenType.MOD:
                 # place remainder in accumulator
                 self.write_instr('movl', self.rem_32, self.acc_32)
-        self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
+
+    def gen_comp_expr(self, expr):
+        """Generate code for a comparison expression.  If the comparison is
+        true, leave 1 in the accumulator, otherwise 0.
+
+        """
+        self.write_instr(
+            'cmpl', self.acc_32, self.sp_64.offset(0),
+            comment='LHS {0} RHS'.format(TokenType.constants[expr.op.typ])
+        )
+        false_label = self.new_label()
+        continue_label = self.new_label()
+        if expr.op.typ == TokenType.BOOLEQ:
+            jump_instr = 'jne'
+        elif expr.op.typ == TokenType.NEQUAL:
+            jump_instr = 'je'
+        elif expr.op.typ == TokenType.LESS:
+            jump_instr = 'jge'
+        elif expr.op.typ == TokenType.LEQUAL:
+            jump_instr = 'jg'
+        elif expr.op.typ == TokenType.GREATER:
+            jump_instr = 'jle'
+        elif expr.op.typ == TokenType.GEQUAL:
+            jump_instr = 'jl'
+        self.write_instr(jump_instr, false_label)
+        self.write_instr('movl', 1, self.acc_32) # true
+        self.write_instr('jmp', continue_label)
+        self.write_label(false_label)
+        self.write_instr('movl', 0, self.acc_32) # false
+        self.write_label(continue_label)
 
     def write_instr(self, instr, source=None, dest=None, comment=None):
-        """Generate an assembly instruction with one or two operands.  Offset
+        """Write an assembly instruction with one or two operands.  Offset
         formatting is handled by Register* classes.  If :source: or
         :dest: are integers, prepend a dollar to them for immediate
         mode.

@@ -1,3 +1,3 @@
 void main(void) {
-  write(10 % 3);
+  write(100 > 100);
 }
