@@ -1,3 +1,7 @@
 void main(void) {
-  write(100 > 100);
+  if (3 == 13 % 10) {
+    write(20);
+  }
+  write(100);
+  writeln();
 }

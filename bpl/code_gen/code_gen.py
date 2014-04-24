@@ -172,6 +172,18 @@ class CodeGenerator():
                 self.write_instr('movq', self.imm_str_labels['write_int'], self.fmt_64)
                 self.write_instr('movl', 0, self.acc_32)
                 self.write_instr('call', 'printf')
+        elif stmt.kind == TN.IF_STMT:
+            self.gen_expr(stmt.cond)
+            true_label = self.new_label()
+            continue_label = self.new_label()
+            self.write_instr('cmpl', 0, self.acc_32)
+            self.write_instr('jne', true_label)
+            if stmt.false_body is not None:
+                self.gen_stmt(stmt.false_body)
+            self.write_instr('jmp', continue_label)
+            self.write_label(true_label)
+            self.gen_stmt(stmt.true_body)
+            self.write_label(continue_label)
 
     def gen_expr(self, expr):
         """Generate code for an expression :expr:."""
