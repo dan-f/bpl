@@ -165,25 +165,35 @@ class CodeGenerator():
         if stmt.kind == TN.COMP_STMT:
             for body_stmt in stmt.stmt_list:
                 self.gen_stmt(body_stmt)
-        elif stmt.kind == TN.WRITE_STMT:
+        elif stmt.kind in (TN.WRITE_STMT, TN.WRITELN_STMT):
+            self.gen_write_stmt(stmt)
+        elif stmt.kind == TN.IF_STMT:
+            self.gen_if_stmt(stmt)
+
+    def gen_write_stmt(self, stmt):
+        """Generate code for a write or writeln statement :stmt:."""
+        if stmt.kind == TN.WRITE_STMT:
             self.gen_expr(stmt.expr)
             if stmt.expr.typ == BPLType('INT'):
                 self.write_instr('movl', self.acc_32, self.str_32, 'move val for printing')
                 self.write_instr('movq', self.imm_str_labels['write_int'], self.fmt_64)
-                self.write_instr('movl', 0, self.acc_32)
-                self.write_instr('call', 'printf')
-        elif stmt.kind == TN.IF_STMT:
-            self.gen_expr(stmt.cond)
-            true_label = self.new_label()
-            continue_label = self.new_label()
-            self.write_instr('cmpl', 0, self.acc_32)
-            self.write_instr('jne', true_label)
-            if stmt.false_body is not None:
-                self.gen_stmt(stmt.false_body)
-            self.write_instr('jmp', continue_label)
-            self.write_label(true_label)
-            self.gen_stmt(stmt.true_body)
-            self.write_label(continue_label)
+        elif stmt.kind == TN.WRITELN_STMT:
+            self.write_instr('movq', self.imm_str_labels['write_line'], self.fmt_64)
+        self.write_instr('movl', 0, self.acc_32)
+        self.write_instr('call', 'printf')
+
+    def gen_if_stmt(self, stmt):
+        self.gen_expr(stmt.cond)
+        true_label = self.new_label()
+        continue_label = self.new_label()
+        self.write_instr('cmpl', 0, self.acc_32)
+        self.write_instr('jne', true_label)
+        if stmt.false_body is not None:
+            self.gen_stmt(stmt.false_body)
+        self.write_instr('jmp', continue_label)
+        self.write_label(true_label)
+        self.gen_stmt(stmt.true_body)
+        self.write_label(continue_label)
 
     def gen_expr(self, expr):
         """Generate code for an expression :expr:."""
