@@ -169,6 +169,8 @@ class CodeGenerator():
             self.gen_write_stmt(stmt)
         elif stmt.kind == TN.IF_STMT:
             self.gen_if_stmt(stmt)
+        elif stmt.kind == TN.WHILE_STMT:
+            self.gen_while_stmt(stmt)
 
     def gen_write_stmt(self, stmt):
         """Generate code for a write or writeln statement :stmt:."""
@@ -183,6 +185,7 @@ class CodeGenerator():
         self.write_instr('call', 'printf')
 
     def gen_if_stmt(self, stmt):
+        """Generate code for an if statement :stmt:."""
         self.gen_expr(stmt.cond)
         true_label = self.new_label()
         continue_label = self.new_label()
@@ -193,6 +196,18 @@ class CodeGenerator():
         self.write_instr('jmp', continue_label)
         self.write_label(true_label)
         self.gen_stmt(stmt.true_body)
+        self.write_label(continue_label)
+
+    def gen_while_stmt(self, stmt):
+        """Generate code for a while statement :stmt:."""
+        cond_label = self.new_label()
+        continue_label = self.new_label()
+        self.write_label(cond_label)
+        self.gen_expr(stmt.cond)
+        self.write_instr('cmpl', 0, self.acc_32, 'check while condition')
+        self.write_instr('je', continue_label)
+        self.gen_stmt(stmt.body)
+        self.write_instr('jmp', cond_label)
         self.write_label(continue_label)
 
     def gen_expr(self, expr):

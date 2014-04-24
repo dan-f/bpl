@@ -1,7 +1,7 @@
 void main(void) {
-  if (3 == 13 % 10) {
-    write(20);
+  while (1 == 1)                /* infinite loopage! */
+  {
+    write(1);
+    writeln();
   }
-  write(100);
-  writeln();
 }
