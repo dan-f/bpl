@@ -168,8 +168,9 @@ class CodeGenerator():
 
         """
         if stmt.kind == TN.COMP_STMT:
-            for body_stmt in stmt.stmt_list:
-                self.gen_stmt(body_stmt, func)
+            if stmt.stmt_list is not None:
+                for body_stmt in stmt.stmt_list:
+                    self.gen_stmt(body_stmt, func)
         elif stmt.kind in (TN.WRITE_STMT, TN.WRITELN_STMT):
             self.gen_write_stmt(stmt, func)
         elif stmt.kind == TN.IF_STMT:
