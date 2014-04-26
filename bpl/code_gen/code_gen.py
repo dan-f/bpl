@@ -226,10 +226,17 @@ class CodeGenerator():
         """Generate code for an expression :expr:."""
         if expr.kind == TN.INT_EXP:
             self.write_instr('movq', expr.val, self.acc_64)
+        elif expr.kind == TN.VAR_EXP:
+            self.gen_var_expr(expr)
         elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP, TN.ASSIGN_EXP):
             self.gen_binary_expr(expr)
         elif expr.kind == TN.FUN_CALL_EXP:
             self.gen_funcall_expr(expr)
+
+    def gen_var_expr(self, expr):
+        """Generate code for a variable expression :expr:."""
+        if expr.typ == BPLType('INT'):
+            self.write_instr('movl', self.fp_64.offset(expr.dec.offset), self.acc_32, comment='var expression')
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).

@@ -1,10 +1,13 @@
-int f(int x)
+int fact(int n)
 {
-  return x + 2 + 3;
+  if (n == 1)
+    return 1;
+  else
+    return n * fact(n - 1);
 }
 
 void main(void)
 {
-  write(f(30 + 5));
+  write(fact(5));
   writeln();
 }
