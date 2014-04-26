@@ -8,6 +8,9 @@ int fact(int n)
 
 void main(void)
 {
-  write(fact(5));
+  int x;
+  int y;
+  x = y = 5;
+  write(fact(x));
   writeln();
 }

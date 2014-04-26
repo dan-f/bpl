@@ -228,20 +228,23 @@ class CodeGenerator():
             self.write_instr('movq', expr.val, self.acc_64)
         elif expr.kind == TN.VAR_EXP:
             self.gen_var_expr(expr)
-        elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP, TN.ASSIGN_EXP):
+        elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP):
             self.gen_binary_expr(expr)
+        elif expr.kind == TN.ASSIGN_EXP:
+            self.gen_assign_expr(expr)
         elif expr.kind == TN.FUN_CALL_EXP:
             self.gen_funcall_expr(expr)
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
-        if expr.typ == BPLType('INT'):
-            self.write_instr('movl', self.fp_64.offset(expr.dec.offset), self.acc_32, comment='var expression')
+        # TODO: support globals
+        # (currently only supporting locals)
+        self.write_instr('movl', self.fp_64.offset(expr.dec.offset), self.acc_32, comment='var expression')
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
-        This is either an arithmetic expression, a comparison
-        expression, or an assignment expression.
+        This is either an arithmetic expression or a comparison
+        expression.
 
         """
         self.gen_expr(expr.l_exp)
@@ -251,8 +254,6 @@ class CodeGenerator():
             self.gen_arith_expr(expr)
         elif expr.kind == TN.COMP_EXP:
             self.gen_comp_expr(expr)
-        elif expr.kind == TN.ASSIGN_EXP:
-            pass
         self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
 
     def gen_arith_expr(self, expr):
@@ -305,6 +306,20 @@ class CodeGenerator():
         self.write_label(false_label)
         self.write_instr('movl', 0, self.acc_32) # false
         self.write_label(continue_label)
+
+    def gen_assign_expr(self, expr):
+        """Generate code for an assignment expression :expr:."""
+        # TODO: support arrays, globals, and dereferences
+        # (currently only supporting assignment to variable expressions)
+        lhs = expr.l_exp
+        if lhs.kind == TN.VAR_EXP:
+            var_offset = lhs.dec.offset
+            self.gen_expr(expr.r_exp)
+            self.write_instr('movl', self.acc_32, self.fp_64.offset(var_offset))
+        elif lhs.kind == TN.ARR_EXP:
+            pass
+        elif lhs.kind == TN.DEREF_EXP:
+            pass
 
     def write_instr(self, instr, source=None, dest=None, comment=None):
         """Write an assembly instruction with one or two operands.  Offset
