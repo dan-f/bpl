@@ -156,23 +156,31 @@ class CodeGenerator():
         self.write_label(func.name)
         self.write_instr('movq', self.sp_64, self.fp_64, 'move sp into fp')
         self.write_instr('subq', func.locals_size, self.sp_64, 'allocate local vars')
-        self.gen_stmt(func.body)
+        func.ret_label = '.{0}_ret'.format(func.name)
+        self.gen_stmt(func.body, func)
+        self.write_label(func.ret_label)
         self.write_instr('addq', func.locals_size, self.sp_64, 'deallocate local vars')
         self.write_instr('ret')
 
-    def gen_stmt(self, stmt):
-        """Generate code for a statement tree node :stmt:."""
+    def gen_stmt(self, stmt, func):
+        """Generate code for a statement tree node :stmt:.  :func: is the
+        function that :stmt: belongs to.
+
+        """
         if stmt.kind == TN.COMP_STMT:
             for body_stmt in stmt.stmt_list:
-                self.gen_stmt(body_stmt)
+                self.gen_stmt(body_stmt, func)
         elif stmt.kind in (TN.WRITE_STMT, TN.WRITELN_STMT):
-            self.gen_write_stmt(stmt)
+            self.gen_write_stmt(stmt, func)
         elif stmt.kind == TN.IF_STMT:
-            self.gen_if_stmt(stmt)
+            self.gen_if_stmt(stmt, func)
         elif stmt.kind == TN.WHILE_STMT:
-            self.gen_while_stmt(stmt)
+            self.gen_while_stmt(stmt, func)
+        elif stmt.kind == TN.RET_STMT:
+            self.gen_expr(stmt.val)
+            self.write_instr('jmp', func.ret_label)
 
-    def gen_write_stmt(self, stmt):
+    def gen_write_stmt(self, stmt, func):
         """Generate code for a write or writeln statement :stmt:."""
         if stmt.kind == TN.WRITE_STMT:
             self.gen_expr(stmt.expr)
@@ -184,7 +192,7 @@ class CodeGenerator():
         self.write_instr('movl', 0, self.acc_32)
         self.write_instr('call', 'printf')
 
-    def gen_if_stmt(self, stmt):
+    def gen_if_stmt(self, stmt, func):
         """Generate code for an if statement :stmt:."""
         self.gen_expr(stmt.cond)
         true_label = self.new_label()
@@ -192,13 +200,13 @@ class CodeGenerator():
         self.write_instr('cmpl', 0, self.acc_32)
         self.write_instr('jne', true_label)
         if stmt.false_body is not None:
-            self.gen_stmt(stmt.false_body)
+            self.gen_stmt(stmt.false_body, func)
         self.write_instr('jmp', continue_label)
         self.write_label(true_label)
-        self.gen_stmt(stmt.true_body)
+        self.gen_stmt(stmt.true_body, func)
         self.write_label(continue_label)
 
-    def gen_while_stmt(self, stmt):
+    def gen_while_stmt(self, stmt, func):
         """Generate code for a while statement :stmt:."""
         cond_label = self.new_label()
         continue_label = self.new_label()
@@ -206,7 +214,7 @@ class CodeGenerator():
         self.gen_expr(stmt.cond)
         self.write_instr('cmpl', 0, self.acc_32, 'check while condition')
         self.write_instr('je', continue_label)
-        self.gen_stmt(stmt.body)
+        self.gen_stmt(stmt.body, func)
         self.write_instr('jmp', cond_label)
         self.write_label(continue_label)
 
@@ -216,6 +224,8 @@ class CodeGenerator():
             self.write_instr('movq', expr.val, self.acc_64)
         elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP, TN.ASSIGN_EXP):
             self.gen_binary_expr(expr)
+        elif expr.kind == TN.FUN_CALL_EXP:
+            self.gen_funcall_expr(expr)
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
@@ -316,6 +326,19 @@ class CodeGenerator():
         else:
             statement += '\n'
         self.write_to_assembly(statement)
+
+    def gen_funcall_expr(self, expr):
+        """Generate code for a function call expression :expr:."""
+        # push args on stack in reverse order
+        args = [arg for arg in expr.params]
+        for arg in reversed(args):
+            self.gen_expr(arg)
+            # TODO: is it cool that we have to push 64 bit version?
+            self.write_instr('push', self.acc_64, comment='push arg')
+        self.write_instr('push', self.fp_64, comment='save fp')
+        self.write_instr('call', expr.name)
+        self.write_instr('pop', self.fp_64, comment='restore fp')
+        self.write_instr('addq', len(args) * self.WORD_SIZE, self.sp_64, comment='pop args')
 
     def write_label(self, label):
         """Write a label with name :label: to file."""
