@@ -87,13 +87,14 @@ class CodeGenerator():
                 param.offset = param_offset
                 self.print_debug('param {0} assigned offset {1}'.format(param.name, param.offset))
                 param_offset += self.WORD_SIZE
-        # assign offsets to local variables; first is at self.WORD_SIZE
-        local_offset = self.WORD_SIZE
+        # assign offsets to local variables; first is at -self.WORD_SIZE
+        local_offset = -self.WORD_SIZE
         # locals_size is the number of bytes to allocate for local
         # variables.  We have to shave off one word because
         # assign_offsets_stmt returns the offset of the *next*
         # variable declaration.
-        func.locals_size = self.assign_offsets_stmt(func.body, local_offset) - self.WORD_SIZE
+        func.locals_size = -(self.assign_offsets_stmt(func.body, local_offset)) - self.WORD_SIZE
+        self.print_debug("local decs size: {0}".format(func.locals_size))
 
     def assign_offsets_stmt(self, stmt, dec_offset):
         """Assign offset values to local variables in a compound statement.
@@ -108,9 +109,9 @@ class CodeGenerator():
                     local_dec.offset = dec_offset
                     self.print_debug('local var {0} assigned offset {1}'.format(local_dec.name, local_dec.offset))
                     if local_dec.kind == TN.ARR_DEC:
-                        dec_offset += self.WORD_SIZE * local_dec.size
+                        dec_offset -= self.WORD_SIZE * local_dec.size
                     else:
-                        dec_offset += self.WORD_SIZE
+                        dec_offset -= self.WORD_SIZE
             # assign offsets to locals in nested compound statements
             if stmt.stmt_list is not None:
                 for body_stmt in stmt.stmt_list:
