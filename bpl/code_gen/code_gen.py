@@ -181,6 +181,8 @@ class CodeGenerator():
         elif stmt.kind == TN.RET_STMT:
             self.gen_expr(stmt.val)
             self.write_instr('jmp', func.ret_label)
+        elif stmt.kind == TN.EXPR_STMT:
+            self.gen_expr(stmt.expr)
 
     def gen_write_stmt(self, stmt, func):
         """Generate code for a write or writeln statement :stmt:."""
