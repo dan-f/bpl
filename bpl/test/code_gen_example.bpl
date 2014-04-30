@@ -10,6 +10,9 @@ void main(void)
 {
   int x;
   int y;
+  int z;
+  z = 5;
+  write(*(&z));
   x = y = 5;
   write(fact(x));
   writeln();

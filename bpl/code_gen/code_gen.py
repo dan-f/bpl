@@ -234,6 +234,10 @@ class CodeGenerator():
             self.gen_assign_expr(expr)
         elif expr.kind == TN.FUN_CALL_EXP:
             self.gen_funcall_expr(expr)
+        elif expr.kind == TN.ADDR_EXP:
+            self.gen_addr_expr(expr)
+        elif expr.kind == TN.DEREF_EXP:
+            self.gen_deref_expr(expr)
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
@@ -320,6 +324,21 @@ class CodeGenerator():
             pass
         elif lhs.kind == TN.DEREF_EXP:
             pass
+
+    def gen_addr_expr(self, expr):
+        """Generate code for an address expression :expr:."""
+        # TODO: Support globals
+        offset = None
+        if expr.exp.kind == TN.VAR_EXP:
+            offset = expr.exp.dec.offset
+        elif expr.exp.kind == TN.ARR_EXP:
+            offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
+        self.write_instr('leaq', self.fp_64.offset(offset), self.acc_64)
+
+    def gen_deref_expr(self, expr):
+        """Generate code for a dereference expression :expr:."""
+        self.gen_expr(expr.exp)  # put address in the accumulator
+        self.write_instr('movl', self.acc_64.offset(0), self.acc_32)
 
     def write_instr(self, instr, source=None, dest=None, comment=None):
         """Write an assembly instruction with one or two operands.  Offset
