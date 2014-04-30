@@ -43,3 +43,4 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+/bpl/test/code_gen_example
