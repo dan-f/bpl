@@ -25,7 +25,7 @@ class CodeGenerator():
     fp = Register('bp') # frame pointer
     sp = Register('sp') # stack pointer
     acc = Register('ax') # accumulator
-    div = Register('bx') # when dividing, put dividends here
+    div = Register('bx') # when dividing, put divisors here
     rem = Register('dx') # when dividing, remainders end up here
     fmt = Register('di') # when printing, put format strings here
     out = Register('si') # when printing, put values to be printed here
