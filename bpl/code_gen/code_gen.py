@@ -3,15 +3,14 @@ from bpl.parser.parsetree import ParseTreeNode as TN
 from bpl.scanner.token import TokenType
 
 
-def registers(name):
-    return Register32(name), Register64(name)
-
-
 class Register():
     """Represents a register's string representation.  Alows us to handle
     offset here rather than in code generation functions.
 
     """
+    def __init__(self, name):
+        self.name = 'r{0}'.format(name)
+
     def offset(self, val):
         return '{val}(%{self.name})'.format(self=self, val=val)
 
@@ -19,27 +18,17 @@ class Register():
         return '%{self.name}'.format(self=self)
 
 
-class Register64(Register):
-    def __init__(self, name):
-        self.name = 'r{0}'.format(name)
-
-
-class Register32(Register):
-    def __init__(self, name):
-        self.name = 'e{0}'.format(name)
-
-
 class CodeGenerator():
     WORD_SIZE = 8               # x86-64 word size is 8 bytes
 
     # registers
-    fp_32, fp_64 = registers('bp') # frame pointer
-    sp_32, sp_64 = registers('sp') # stack pointer
-    acc_32, acc_64 = registers('ax') # accumulator
-    div_32, div_64 = registers('bx') # when dividing, put dividends here
-    rem_32, rem_64 = registers('dx') # when dividing, remainders end up here
-    fmt_32, fmt_64 = registers('di') # when printing, put format strings here
-    str_32, str_64 = registers('si') # when printing, put strings to be printed here
+    fp = Register('bp') # frame pointer
+    sp = Register('sp') # stack pointer
+    acc = Register('ax') # accumulator
+    div = Register('bx') # when dividing, put dividends here
+    rem = Register('dx') # when dividing, remainders end up here
+    fmt = Register('di') # when printing, put format strings here
+    out = Register('si') # when printing, put values to be printed here
 
 
     # string labels for immediate use
@@ -141,14 +130,14 @@ class CodeGenerator():
 
         """
         # allocate global variables
-        alloc_string = '\t.comm {0}, {1}, {2}\n'
+        alloc_instr = '\t.comm {0}, {1}, {2}\n'
         for dec in self.tree:
             if dec.kind == TN.VAR_DEC:
-                self.write_to_assembly(alloc_string.format(dec.name, self.WORD_SIZE, 32))
+                self.write_to_assembly(alloc_instr.format(dec.name, self.WORD_SIZE, 64))
             elif dec.kind == TN.ARR_DEC:
-                self.write_to_assembly(alloc_string.format(dec.name, dec.size * self.WORD_SIZE, 32))
+                self.write_to_assembly(alloc_instr.format(dec.name, dec.size * self.WORD_SIZE, 64))
         self.write_to_assembly('\t.section .rodata\n')
-        self.write_to_assembly('\t.WriteIntString: .string "%d "\n')
+        self.write_to_assembly('\t.WriteIntString: .string "%lld "\n')
         self.write_to_assembly('\t.WritelnString: .string "\\n"\n')
         self.write_to_assembly('\t.WriteStringString: .string "%s "\n')
         self.write_to_assembly('\t.ArrayOverflowString: .string "You fell off the end of an array.\\n"\n')
@@ -159,12 +148,12 @@ class CodeGenerator():
     def gen_func(self, func):
         """Generate code for a function tree node :func:."""
         self.write_label(func.name)
-        self.write_instr('movq', self.sp_64, self.fp_64, 'move sp into fp')
-        self.write_instr('subq', func.locals_size, self.sp_64, 'allocate local vars')
+        self.write_instr('mov', self.sp, self.fp, 'move sp into fp')
+        self.write_instr('sub', func.locals_size, self.sp, 'allocate local vars')
         func.ret_label = '.{0}_ret'.format(func.name)
         self.gen_stmt(func.body, func)
         self.write_label(func.ret_label)
-        self.write_instr('addq', func.locals_size, self.sp_64, 'deallocate local vars')
+        self.write_instr('add', func.locals_size, self.sp, 'deallocate local vars')
         self.write_instr('ret')
 
     def gen_stmt(self, stmt, func):
@@ -193,11 +182,11 @@ class CodeGenerator():
         if stmt.kind == TN.WRITE_STMT:
             self.gen_expr(stmt.expr)
             if stmt.expr.typ == BPLType('INT'):
-                self.write_instr('movl', self.acc_32, self.str_32, 'move val for printing')
-                self.write_instr('movq', self.imm_str_labels['write_int'], self.fmt_64)
+                self.write_instr('mov', self.acc, self.out, 'move val for printing')
+                self.write_instr('mov', self.imm_str_labels['write_int'], self.fmt)
         elif stmt.kind == TN.WRITELN_STMT:
-            self.write_instr('movq', self.imm_str_labels['write_line'], self.fmt_64)
-        self.write_instr('movl', 0, self.acc_32)
+            self.write_instr('mov', self.imm_str_labels['write_line'], self.fmt)
+        self.write_instr('mov', 0, self.acc)
         self.write_instr('call', 'printf')
 
     def gen_if_stmt(self, stmt, func):
@@ -205,7 +194,7 @@ class CodeGenerator():
         self.gen_expr(stmt.cond)
         true_label = self.new_label()
         continue_label = self.new_label()
-        self.write_instr('cmpl', 0, self.acc_32)
+        self.write_instr('cmp', 0, self.acc)
         self.write_instr('jne', true_label)
         if stmt.false_body is not None:
             self.gen_stmt(stmt.false_body, func)
@@ -220,7 +209,7 @@ class CodeGenerator():
         continue_label = self.new_label()
         self.write_label(cond_label)
         self.gen_expr(stmt.cond)
-        self.write_instr('cmpl', 0, self.acc_32, 'check while condition')
+        self.write_instr('cmp', 0, self.acc, 'check while condition')
         self.write_instr('je', continue_label)
         self.gen_stmt(stmt.body, func)
         self.write_instr('jmp', cond_label)
@@ -229,7 +218,7 @@ class CodeGenerator():
     def gen_expr(self, expr):
         """Generate code for an expression :expr:."""
         if expr.kind == TN.INT_EXP:
-            self.write_instr('movq', expr.val, self.acc_64)
+            self.write_instr('mov', expr.val, self.acc)
         elif expr.kind == TN.VAR_EXP:
             self.gen_var_expr(expr)
         elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP):
@@ -246,9 +235,9 @@ class CodeGenerator():
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
         if expr.dec.is_global:
-            self.write_instr('movq', expr.name, self.acc_64)
+            self.write_instr('mov', expr.name, self.acc)
         else:
-            self.write_instr('movq', self.fp_64.offset(expr.dec.offset), self.acc_64)
+            self.write_instr('mov', self.fp.offset(expr.dec.offset), self.acc)
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
@@ -257,34 +246,33 @@ class CodeGenerator():
 
         """
         self.gen_expr(expr.l_exp)
-        self.write_instr('push', self.acc_64, comment='push LHS')
+        self.write_instr('push', self.acc, comment='push LHS')
         self.gen_expr(expr.r_exp)
         if expr.kind == TN.ARITH_EXP:
             self.gen_arith_expr(expr)
         elif expr.kind == TN.COMP_EXP:
             self.gen_comp_expr(expr)
-        self.write_instr('addq', 8, self.sp_64, comment='pop LHS from stack')
+        self.write_instr('add', 8, self.sp, comment='pop LHS from stack')
 
     def gen_arith_expr(self, expr):
         """Generate code for an arithmetic expression"""
         if expr.op.typ == TokenType.PLUS:
-            self.write_instr('addl', self.sp_64.offset(0), self.acc_32, comment='perform addition')
+            self.write_instr('add', self.sp.offset(0), self.acc, comment='perform addition')
         elif expr.op.typ == TokenType.MINUS:
-            self.write_instr('subl', self.acc_32, self.sp_64.offset(0), comment='perform subtraction')
-            self.write_instr('movl', self.sp_64.offset(0), self.acc_32)
+            self.write_instr('sub', self.acc, self.sp.offset(0), comment='perform subtraction')
+            self.write_instr('mov', self.sp.offset(0), self.acc)
         elif expr.op.typ == TokenType.STAR:
-            self.write_instr('imul', self.sp_64.offset(0), self.acc_32, comment='perform multiplication')
+            self.write_instr('imul', self.sp.offset(0), self.acc, comment='perform multiplication')
         elif expr.op.typ in (TokenType.SLASH, TokenType.MOD):
             # dividend is on top of stack, divisor is in accumulator
-            self.write_instr('movl', self.acc_32, self.div_32, comment='move divisor')
-            self.write_instr('movl', self.sp_64.offset(0), self.acc_32, comment='move dividend')
-            self.write_instr('cltq')
+            self.write_instr('mov', self.acc, self.div, comment='move divisor')
+            self.write_instr('mov', self.sp.offset(0), self.acc, comment='move dividend')
             self.write_instr('cqto')
-            self.write_instr('idivl', self.div_32, comment='perform division')
+            self.write_instr('idiv', self.div, comment='perform division')
             # quotient is now in accumulator
             if expr.op.typ == TokenType.MOD:
                 # place remainder in accumulator
-                self.write_instr('movl', self.rem_32, self.acc_32)
+                self.write_instr('mov', self.rem, self.acc)
 
     def gen_comp_expr(self, expr):
         """Generate code for a comparison expression.  If the comparison is
@@ -292,7 +280,7 @@ class CodeGenerator():
 
         """
         self.write_instr(
-            'cmpl', self.acc_32, self.sp_64.offset(0),
+            'cmp', self.acc, self.sp.offset(0),
             comment='LHS {0} RHS'.format(TokenType.constants[expr.op.typ])
         )
         false_label = self.new_label()
@@ -310,10 +298,10 @@ class CodeGenerator():
         elif expr.op.typ == TokenType.GEQUAL:
             jump_instr = 'jl'
         self.write_instr(jump_instr, false_label)
-        self.write_instr('movl', 1, self.acc_32) # true
+        self.write_instr('mov', 1, self.acc) # true
         self.write_instr('jmp', continue_label)
         self.write_label(false_label)
-        self.write_instr('movl', 0, self.acc_32) # false
+        self.write_instr('mov', 0, self.acc) # false
         self.write_label(continue_label)
 
     def gen_assign_expr(self, expr):
@@ -324,10 +312,10 @@ class CodeGenerator():
         self.gen_expr(expr.r_exp)
         if lhs.kind == TN.VAR_EXP:
             if lhs.dec.is_global:
-                self.write_instr('movq', self.acc_64, lhs.name)
+                self.write_instr('mov', self.acc, lhs.name)
             else:
                 var_offset = lhs.dec.offset
-                self.write_instr('movq', self.acc_64, self.fp_64.offset(var_offset))
+                self.write_instr('mov', self.acc, self.fp.offset(var_offset))
         elif lhs.kind == TN.ARR_EXP:
             pass
         elif lhs.kind == TN.DEREF_EXP:
@@ -335,25 +323,24 @@ class CodeGenerator():
 
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
-        # TODO: Support globals
         if expr.exp.kind == TN.VAR_EXP:
             if expr.exp.dec.is_global:
                 address = expr.exp.name
             else:
-                address = self.fp_64.offset(expr.exp.dec.offset)
+                address = self.fp.offset(expr.exp.dec.offset)
         elif expr.exp.kind == TN.ARR_EXP:
             if expr.exp.dec.is_global:
                 offset = expr.exp.index * self.WORD_SIZE
                 address = '{}({})'.format(offset, expr.exp.name)
             else:
                 offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
-                address = self.fp_64.offset(offset)
-        self.write_instr('leaq', address, self.acc_64)
+                address = self.fp.offset(offset)
+        self.write_instr('lea', address, self.acc)
 
     def gen_deref_expr(self, expr):
         """Generate code for a dereference expression :expr:."""
         self.gen_expr(expr.exp)  # put address in the accumulator
-        self.write_instr('movl', self.acc_64.offset(0), self.acc_32)
+        self.write_instr('mov', self.acc.offset(0), self.acc)
 
     def write_instr(self, instr, source=None, dest=None, comment=None):
         """Write an assembly instruction with one or two operands.  Offset
@@ -393,12 +380,11 @@ class CodeGenerator():
         args = [arg for arg in expr.params]
         for arg in reversed(args):
             self.gen_expr(arg)
-            # TODO: is it cool that we have to push 64 bit version?
-            self.write_instr('push', self.acc_64, comment='push arg')
-        self.write_instr('push', self.fp_64, comment='save fp')
+            self.write_instr('push', self.acc, comment='push arg')
+        self.write_instr('push', self.fp, comment='save fp')
         self.write_instr('call', expr.name)
-        self.write_instr('pop', self.fp_64, comment='restore fp')
-        self.write_instr('addq', len(args) * self.WORD_SIZE, self.sp_64, comment='pop args')
+        self.write_instr('pop', self.fp, comment='restore fp')
+        self.write_instr('add', len(args) * self.WORD_SIZE, self.sp, comment='pop args')
 
     def write_label(self, label):
         """Write a label with name :label: to file."""

@@ -10,8 +10,17 @@ int fact(int n)
 
 void main(void)
 {
-  global = 5;
-  write(*(&global));
-  write(fact(global));
+  int x;
+
+  /* multiply 2^33 to prove we can handle 64 bit multiplication */
+  global = 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2
+    * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2;
+  write(global);
+
+  /* 64-bit division! */
+  x = 9000000000;
+  write(x / 2);
+  write(x % 2000000000);
+
   writeln();
 }
