@@ -131,6 +131,8 @@ class TypeChecker():
                     dec.line_number
                 )
             )
+        # mark global declarations
+        dec.is_global = True if dec in self.tree else False
         self.symbol_tables[-1][dec.name] = dec
 
     def get_dec(self, symbol, function=False):

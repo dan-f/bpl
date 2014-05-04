@@ -129,7 +129,6 @@ class CodeGenerator():
     def gen_all(self):
         """Generate code for self.tree."""
         # for now just generate code for the header and functions
-        # TODO: stuff with global var declarations
         self.assign_offsets()
         self.gen_header()
         for dec in self.tree:
@@ -141,16 +140,21 @@ class CodeGenerator():
         declarations.
 
         """
-        header = """\t.section .rodata
-\t.WriteIntString: .string "%d "
-\t.WritelnString: .string "\\n"
-\t.WriteStringString: .string "%s "
-\t.ArrayOverflowString: .string "You fell off the end of an array.\\n"
-\t.ReadIntString: .string "%d"
-\t.text
-\t.globl main
-"""
-        self.write_to_assembly(header)
+        # allocate global variables
+        alloc_string = '\t.comm {0}, {1}, {2}\n'
+        for dec in self.tree:
+            if dec.kind == TN.VAR_DEC:
+                self.write_to_assembly(alloc_string.format(dec.name, self.WORD_SIZE, 32))
+            elif dec.kind == TN.ARR_DEC:
+                self.write_to_assembly(alloc_string.format(dec.name, dec.size * self.WORD_SIZE, 32))
+        self.write_to_assembly('\t.section .rodata\n')
+        self.write_to_assembly('\t.WriteIntString: .string "%d "\n')
+        self.write_to_assembly('\t.WritelnString: .string "\\n"\n')
+        self.write_to_assembly('\t.WriteStringString: .string "%s "\n')
+        self.write_to_assembly('\t.ArrayOverflowString: .string "You fell off the end of an array.\\n"\n')
+        self.write_to_assembly('\t.ReadIntString: .string "%d"\n')
+        self.write_to_assembly('\t.text\n')
+        self.write_to_assembly('\t.globl main\n')
 
     def gen_func(self, func):
         """Generate code for a function tree node :func:."""
@@ -241,9 +245,10 @@ class CodeGenerator():
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
-        # TODO: support globals
-        # (currently only supporting locals)
-        self.write_instr('movl', self.fp_64.offset(expr.dec.offset), self.acc_32, comment='var expression')
+        if expr.dec.is_global:
+            self.write_instr('movq', expr.name, self.acc_64)
+        else:
+            self.write_instr('movq', self.fp_64.offset(expr.dec.offset), self.acc_64)
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
@@ -313,13 +318,16 @@ class CodeGenerator():
 
     def gen_assign_expr(self, expr):
         """Generate code for an assignment expression :expr:."""
-        # TODO: support arrays, globals, and dereferences
+        # TODO: support arrays and dereferences
         # (currently only supporting assignment to variable expressions)
         lhs = expr.l_exp
+        self.gen_expr(expr.r_exp)
         if lhs.kind == TN.VAR_EXP:
-            var_offset = lhs.dec.offset
-            self.gen_expr(expr.r_exp)
-            self.write_instr('movl', self.acc_32, self.fp_64.offset(var_offset))
+            if lhs.dec.is_global:
+                self.write_instr('movq', self.acc_64, lhs.name)
+            else:
+                var_offset = lhs.dec.offset
+                self.write_instr('movq', self.acc_64, self.fp_64.offset(var_offset))
         elif lhs.kind == TN.ARR_EXP:
             pass
         elif lhs.kind == TN.DEREF_EXP:
@@ -328,12 +336,19 @@ class CodeGenerator():
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
         # TODO: Support globals
-        offset = None
         if expr.exp.kind == TN.VAR_EXP:
-            offset = expr.exp.dec.offset
+            if expr.exp.dec.is_global:
+                address = expr.exp.name
+            else:
+                address = self.fp_64.offset(expr.exp.dec.offset)
         elif expr.exp.kind == TN.ARR_EXP:
-            offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
-        self.write_instr('leaq', self.fp_64.offset(offset), self.acc_64)
+            if expr.exp.dec.is_global:
+                offset = expr.exp.index * self.WORD_SIZE
+                address = '{}({})'.format(offset, expr.exp.name)
+            else:
+                offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
+                address = self.fp_64.offset(offset)
+        self.write_instr('leaq', address, self.acc_64)
 
     def gen_deref_expr(self, expr):
         """Generate code for a dereference expression :expr:."""

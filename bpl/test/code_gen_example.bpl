@@ -1,3 +1,5 @@
+int global;
+
 int fact(int n)
 {
   if (n == 1)
@@ -8,12 +10,8 @@ int fact(int n)
 
 void main(void)
 {
-  int x;
-  int y;
-  int z;
-  z = 5;
-  write(*(&z));
-  x = y = 5;
-  write(fact(x));
+  global = 5;
+  write(*(&global));
+  write(fact(global));
   writeln();
 }
