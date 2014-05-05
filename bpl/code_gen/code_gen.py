@@ -266,24 +266,28 @@ class CodeGenerator():
 
     def gen_expr(self, expr):
         """Generate code for an expression :expr:."""
-        if expr.kind == TN.INT_EXP:
-            self.write_instr('mov', expr.val, self.acc)
-        elif expr.kind == TN.STR_EXP:
-            self.write_instr('mov', self.string_dict[expr.val].immediate(), self.acc)
-        elif expr.kind == TN.VAR_EXP:
+        if expr.kind == TN.VAR_EXP:
             self.gen_var_expr(expr)
-        elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP):
-            self.gen_binary_expr(expr)
-        elif expr.kind == TN.ASSIGN_EXP:
-            self.gen_assign_expr(expr)
-        elif expr.kind == TN.FUN_CALL_EXP:
-            self.gen_funcall_expr(expr)
+        elif expr.kind == TN.ARR_EXP:
+            pass
         elif expr.kind == TN.ADDR_EXP:
             self.gen_addr_expr(expr)
         elif expr.kind == TN.DEREF_EXP:
             self.gen_deref_expr(expr)
+        elif expr.kind == TN.FUN_CALL_EXP:
+            self.gen_funcall_expr(expr)
+        elif expr.kind == TN.READ_EXP:
+            pass
+        elif expr.kind == TN.ASSIGN_EXP:
+            self.gen_assign_expr(expr)
+        elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP):
+            self.gen_binary_expr(expr)
         elif expr.kind == TN.NEG_EXP:
             self.gen_neg_expr(expr)
+        elif expr.kind == TN.INT_EXP:
+            self.write_instr('mov', expr.val, self.acc)
+        elif expr.kind == TN.STR_EXP:
+            self.write_instr('mov', self.string_dict[expr.val].immediate(), self.acc)
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
@@ -291,6 +295,62 @@ class CodeGenerator():
             self.write_instr('mov', expr.name, self.acc)
         else:
             self.write_instr('mov', self.fp.offset(expr.dec.offset), self.acc)
+
+    def gen_arr_expr(self, expr):
+        pass
+
+    def gen_addr_expr(self, expr):
+        """Generate code for an address expression :expr:."""
+        if expr.exp.kind == TN.VAR_EXP:
+            if expr.exp.dec.is_global:
+                address = expr.exp.name
+            else:
+                address = self.fp.offset(expr.exp.dec.offset)
+        elif expr.exp.kind == TN.ARR_EXP:
+            if expr.exp.dec.is_global:
+                offset = expr.exp.index * self.WORD_SIZE
+                address = '{}({})'.format(offset, expr.exp.name)
+            else:
+                offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
+                address = self.fp.offset(offset)
+        self.write_instr('lea', address, self.acc)
+
+    def gen_deref_expr(self, expr):
+        """Generate code for a dereference expression :expr:."""
+        self.gen_expr(expr.exp)  # put address in the accumulator
+        self.write_instr('mov', self.acc.offset(0), self.acc)
+
+    def gen_funcall_expr(self, expr):
+        """Generate code for a function call expression :expr:."""
+        # push args on stack in reverse order
+        args = [arg for arg in expr.params]
+        for arg in reversed(args):
+            self.gen_expr(arg)
+            self.write_instr('push', self.acc, comment='push arg')
+        self.write_instr('push', self.fp, comment='save fp')
+        self.write_instr('call', expr.name)
+        self.write_instr('pop', self.fp, comment='restore fp')
+        self.write_instr('add', len(args) * self.WORD_SIZE, self.sp, comment='pop args')
+
+    def gen_read_expr(self, expr):
+        pass
+
+    def gen_assign_expr(self, expr):
+        """Generate code for an assignment expression :expr:."""
+        # TODO: support arrays and dereferences
+        # (currently only supporting assignment to variable expressions)
+        lhs = expr.l_exp
+        self.gen_expr(expr.r_exp)
+        if lhs.kind == TN.VAR_EXP:
+            if lhs.dec.is_global:
+                self.write_instr('mov', self.acc, lhs.name)
+            else:
+                var_offset = lhs.dec.offset
+                self.write_instr('mov', self.acc, self.fp.offset(var_offset))
+        elif lhs.kind == TN.ARR_EXP:
+            pass
+        elif lhs.kind == TN.DEREF_EXP:
+            pass
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
@@ -357,44 +417,6 @@ class CodeGenerator():
         self.write_instr('mov', 0, self.acc) # false
         self.write_label(continue_label)
 
-    def gen_assign_expr(self, expr):
-        """Generate code for an assignment expression :expr:."""
-        # TODO: support arrays and dereferences
-        # (currently only supporting assignment to variable expressions)
-        lhs = expr.l_exp
-        self.gen_expr(expr.r_exp)
-        if lhs.kind == TN.VAR_EXP:
-            if lhs.dec.is_global:
-                self.write_instr('mov', self.acc, lhs.name)
-            else:
-                var_offset = lhs.dec.offset
-                self.write_instr('mov', self.acc, self.fp.offset(var_offset))
-        elif lhs.kind == TN.ARR_EXP:
-            pass
-        elif lhs.kind == TN.DEREF_EXP:
-            pass
-
-    def gen_addr_expr(self, expr):
-        """Generate code for an address expression :expr:."""
-        if expr.exp.kind == TN.VAR_EXP:
-            if expr.exp.dec.is_global:
-                address = expr.exp.name
-            else:
-                address = self.fp.offset(expr.exp.dec.offset)
-        elif expr.exp.kind == TN.ARR_EXP:
-            if expr.exp.dec.is_global:
-                offset = expr.exp.index * self.WORD_SIZE
-                address = '{}({})'.format(offset, expr.exp.name)
-            else:
-                offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
-                address = self.fp.offset(offset)
-        self.write_instr('lea', address, self.acc)
-
-    def gen_deref_expr(self, expr):
-        """Generate code for a dereference expression :expr:."""
-        self.gen_expr(expr.exp)  # put address in the accumulator
-        self.write_instr('mov', self.acc.offset(0), self.acc)
-
     def gen_neg_expr(self, expr):
         """Generate code for a negation expression :expr:."""
         self.gen_expr(expr.exp)
@@ -434,18 +456,6 @@ class CodeGenerator():
         else:
             statement += '\n'
         self.write_to_assembly(statement)
-
-    def gen_funcall_expr(self, expr):
-        """Generate code for a function call expression :expr:."""
-        # push args on stack in reverse order
-        args = [arg for arg in expr.params]
-        for arg in reversed(args):
-            self.gen_expr(arg)
-            self.write_instr('push', self.acc, comment='push arg')
-        self.write_instr('push', self.fp, comment='save fp')
-        self.write_instr('call', expr.name)
-        self.write_instr('pop', self.fp, comment='restore fp')
-        self.write_instr('add', len(args) * self.WORD_SIZE, self.sp, comment='pop args')
 
     def write_label(self, label):
         """Write a label with name :label: to file."""
