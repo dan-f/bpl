@@ -123,6 +123,15 @@ class TypeChecker():
 
     def add_dec(self, dec):
         """Add :dec.name: -> :dec: to the top-level symbol table."""
+        # can't re-declare same name
+        if dec.name in self.symbol_tables[-1]:
+            raise TypeException(
+                '%s:%d: Attempted to re-declare name "%s".' % (
+                    self.filename,
+                    dec.line_number,
+                    dec.name
+                )
+            )
         # can't have an array declaration with size < 1
         if dec.kind == PTN.ARR_DEC and dec.size < 1:
             raise TypeException(
