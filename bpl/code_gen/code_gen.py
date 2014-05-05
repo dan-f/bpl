@@ -1,6 +1,7 @@
 from bpl.parser.parser import BPLType
 from bpl.parser.parsetree import ParseTreeNode as TN
 from bpl.scanner.token import TokenType
+from itertools import count
 
 
 class Register():
@@ -18,6 +19,21 @@ class Register():
         return '%{self.name}'.format(self=self)
 
 
+class Label():
+    """Simply represents a label, allowing us to grab its immediate
+    representation (i.e. label preceded by a dollar) so that we don't
+    have to do that all over the place in our code.
+
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def immediate(self):
+        return '${self.name}'.format(self=self)
+
+    def __str__(self):
+        return self.name
+
 class CodeGenerator():
     WORD_SIZE = 8               # x86-64 word size is 8 bytes
 
@@ -32,14 +48,11 @@ class CodeGenerator():
 
 
     # string labels for immediate use
-    # TODO: clean this up
-    imm_str_labels = {
-        'write_int': '$.WriteIntString',
-        'write_line': '$.WritelnString',
-        'write_string': '$.WriteSTringString',
-        'arr_overflow': '$.ArrayOverflowString',
-        'read_int': '$.ReadIntString'
-    }
+    write_int_label = Label('.WriteIntString')
+    write_line_label = Label('.WritelnString')
+    write_string_label = Label('.WriteStringString')
+    arr_overflow_label = Label('.ArrayOverflowString')
+    read_int_label = Label('.ReadIntString')
 
     def __init__(self, filename, tree, DEBUG=False):
         """Initialize a code generator object.
@@ -51,8 +64,10 @@ class CodeGenerator():
         self.filename = filename
         self.tree = tree
         self.DEBUG = DEBUG
+        self.string_dict = {}
+        self.string_label_count = count()
+        self.control_label_count = count()
         self.assembly_file = '%s.s' % self.filename[:-4]
-        self._label_counter = 0
         with open(self.assembly_file, 'w') as f:
             f.truncate(0)
 
@@ -115,6 +130,36 @@ class CodeGenerator():
             dec_offset = self.assign_offsets_stmt(stmt, dec_offset)
         return dec_offset
 
+    def build_string_dict(self, node=None):
+        """Construct the global string dictionary."""
+        if node is None:
+            map(self.build_string_dict, self.tree)
+        elif node.kind == TN.STR_EXP:
+            self.string_dict[node.val] = self.new_string_label()
+        elif node.kind == TN.FUN_DEC:
+            self.build_string_dict(node.body)
+        elif node.kind == TN.COMP_STMT:
+            if node.stmt_list is not None:
+                map(self.build_string_dict, node.stmt_list)
+        elif node.kind == TN.EXPR_STMT:
+            self.build_string_dict(node.expr)
+        elif node.kind == TN.IF_STMT:
+            if node.true_body is not None:
+                self.build_string_dict(node.true_body)
+            if node.false_body is not None:
+                self.build_string_dict(node.false_body)
+        elif node.kind == TN.WHILE_STMT:
+            self.build_string_dict(node.body)
+        elif node.kind == TN.RET_STMT:
+            self.build_string_dict(node.val)
+        elif node.kind == TN.ASSIGN_EXP:
+            self.build_string_dict(node.r_exp)
+        elif node.kind == TN.FUN_CALL_EXP:
+            if node.params is not None:
+                map(self.build_string_dict, node.params)
+        elif node.kind in (TN.ADDR_EXP, TN.DEREF_EXP):
+            self.build_string_dict(exp)
+
     def gen_all(self):
         """Generate code for self.tree."""
         # for now just generate code for the header and functions
@@ -125,10 +170,7 @@ class CodeGenerator():
                 self.gen_func(dec)
 
     def gen_header(self):
-        """Generate assembly header.  For now, just generates I/O string
-        declarations.
-
-        """
+        """Generate assembly header."""
         # allocate global variables
         alloc_instr = '\t.comm {0}, {1}, {2}\n'
         for dec in self.tree:
@@ -137,11 +179,16 @@ class CodeGenerator():
             elif dec.kind == TN.ARR_DEC:
                 self.write_to_assembly(alloc_instr.format(dec.name, dec.size * self.WORD_SIZE, 64))
         self.write_to_assembly('\t.section .rodata\n')
-        self.write_to_assembly('\t.WriteIntString: .string "%lld "\n')
-        self.write_to_assembly('\t.WritelnString: .string "\\n"\n')
-        self.write_to_assembly('\t.WriteStringString: .string "%s "\n')
-        self.write_to_assembly('\t.ArrayOverflowString: .string "You fell off the end of an array.\\n"\n')
-        self.write_to_assembly('\t.ReadIntString: .string "%d"\n')
+        # allocate strings
+        self.build_string_dict()
+        print(self.string_dict)
+        for string, label in self.string_dict.iteritems():
+            self.write_to_assembly('\t{}: .string "{}"\n'.format(label, string))
+        self.write_to_assembly('\t{}: .string "%lld "\n'.format(self.write_int_label))
+        self.write_to_assembly('\t{}: .string "\\n"\n'.format(self.write_line_label))
+        self.write_to_assembly('\t{}: .string "%s "\n'.format(self.write_string_label))
+        self.write_to_assembly('\t{}: .string "You fell off the end of an array.\\n"\n'.format(self.arr_overflow_label))
+        self.write_to_assembly('\t{}: .string "%d"\n'.format(self.read_int_label))
         self.write_to_assembly('\t.text\n')
         self.write_to_assembly('\t.globl main\n')
 
@@ -181,19 +228,21 @@ class CodeGenerator():
         """Generate code for a write or writeln statement :stmt:."""
         if stmt.kind == TN.WRITE_STMT:
             self.gen_expr(stmt.expr)
+            self.write_instr('mov', self.acc, self.out, 'move val for printing')
             if stmt.expr.typ == BPLType('INT'):
-                self.write_instr('mov', self.acc, self.out, 'move val for printing')
-                self.write_instr('mov', self.imm_str_labels['write_int'], self.fmt)
+                self.write_instr('mov', self.write_int_label.immediate(), self.fmt)
+            elif stmt.expr.typ == BPLType('STRING'):
+                self.write_instr('mov', self.write_string_label.immediate(), self.fmt)
         elif stmt.kind == TN.WRITELN_STMT:
-            self.write_instr('mov', self.imm_str_labels['write_line'], self.fmt)
+            self.write_instr('mov', self.write_line_label.immediate(), self.fmt)
         self.write_instr('mov', 0, self.acc)
         self.write_instr('call', 'printf')
 
     def gen_if_stmt(self, stmt, func):
         """Generate code for an if statement :stmt:."""
         self.gen_expr(stmt.cond)
-        true_label = self.new_label()
-        continue_label = self.new_label()
+        true_label = self.new_control_label()
+        continue_label = self.new_control_label()
         self.write_instr('cmp', 0, self.acc)
         self.write_instr('jne', true_label)
         if stmt.false_body is not None:
@@ -205,8 +254,8 @@ class CodeGenerator():
 
     def gen_while_stmt(self, stmt, func):
         """Generate code for a while statement :stmt:."""
-        cond_label = self.new_label()
-        continue_label = self.new_label()
+        cond_label = self.new_control_label()
+        continue_label = self.new_control_label()
         self.write_label(cond_label)
         self.gen_expr(stmt.cond)
         self.write_instr('cmp', 0, self.acc, 'check while condition')
@@ -219,6 +268,8 @@ class CodeGenerator():
         """Generate code for an expression :expr:."""
         if expr.kind == TN.INT_EXP:
             self.write_instr('mov', expr.val, self.acc)
+        elif expr.kind == TN.STR_EXP:
+            self.write_instr('mov', self.string_dict[expr.val].immediate(), self.acc)
         elif expr.kind == TN.VAR_EXP:
             self.gen_var_expr(expr)
         elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP):
@@ -283,8 +334,8 @@ class CodeGenerator():
             'cmp', self.acc, self.sp.offset(0),
             comment='LHS {0} RHS'.format(TokenType.constants[expr.op.typ])
         )
-        false_label = self.new_label()
-        continue_label = self.new_label()
+        false_label = self.new_control_label()
+        continue_label = self.new_control_label()
         if expr.op.typ == TokenType.BOOLEQ:
             jump_instr = 'jne'
         elif expr.op.typ == TokenType.NEQUAL:
@@ -390,11 +441,13 @@ class CodeGenerator():
         """Write a label with name :label: to file."""
         self.write_to_assembly('{0}:\n'.format(label))
 
-    def new_label(self):
+    def new_control_label(self):
         """Return a new, unique label name."""
-        label = '.L{0}'.format(self._label_counter)
-        self._label_counter += 1
-        return label
+        return Label('.L{}'.format(self.control_label_count.next()))
+
+    def new_string_label(self):
+        """Return a new, unique label name."""
+        return Label('.S{}'.format(self.string_label_count.next()))
 
     def write_to_assembly(self, data):
         """Appends :data: to assembly file."""
