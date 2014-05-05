@@ -282,6 +282,8 @@ class CodeGenerator():
             self.gen_addr_expr(expr)
         elif expr.kind == TN.DEREF_EXP:
             self.gen_deref_expr(expr)
+        elif expr.kind == TN.NEG_EXP:
+            self.gen_neg_expr(expr)
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
@@ -303,7 +305,7 @@ class CodeGenerator():
             self.gen_arith_expr(expr)
         elif expr.kind == TN.COMP_EXP:
             self.gen_comp_expr(expr)
-        self.write_instr('add', 8, self.sp, comment='pop LHS from stack')
+        self.write_instr('add', self.WORD_SIZE, self.sp, comment='pop LHS from stack')
 
     def gen_arith_expr(self, expr):
         """Generate code for an arithmetic expression"""
@@ -392,6 +394,14 @@ class CodeGenerator():
         """Generate code for a dereference expression :expr:."""
         self.gen_expr(expr.exp)  # put address in the accumulator
         self.write_instr('mov', self.acc.offset(0), self.acc)
+
+    def gen_neg_expr(self, expr):
+        """Generate code for a negation expression :expr:."""
+        self.gen_expr(expr.exp)
+        self.write_instr('push', self.acc)
+        self.write_instr('mov', 0, self.acc)
+        self.write_instr('sub', self.sp.offset(0), self.acc)
+        self.write_instr('add', self.WORD_SIZE, self.sp)
 
     def write_instr(self, instr, source=None, dest=None, comment=None):
         """Write an assembly instruction with one or two operands.  Offset
