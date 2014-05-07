@@ -164,7 +164,7 @@ class CodeGenerator():
             if node.params is not None:
                 map(self.build_string_dict, node.params)
         elif node.kind in (TN.ADDR_EXP, TN.DEREF_EXP):
-            self.build_string_dict(exp)
+            self.build_string_dict(node.exp)
 
     def gen_all(self):
         """Generate code for self.tree."""
