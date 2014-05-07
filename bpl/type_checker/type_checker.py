@@ -105,8 +105,12 @@ class TypeChecker():
 
     def link_expr(self, expr):
         """Link references in an expression."""
-        if expr.kind in (PTN.VAR_EXP, PTN.ARR_EXP):
+        if expr.kind == PTN.VAR_EXP:
             self.link_to_dec(expr)
+            self.print_debug(expr.line_number, self.link_message(expr))
+        elif expr.kind == PTN.ARR_EXP:
+            self.link_to_dec(expr)
+            self.link_expr(expr.index)
             self.print_debug(expr.line_number, self.link_message(expr))
         elif expr.kind == PTN.FUN_CALL_EXP:
             self.link_to_dec(expr, function=True)
