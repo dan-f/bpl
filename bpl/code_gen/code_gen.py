@@ -309,19 +309,8 @@ class CodeGenerator():
 
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
-        if expr.exp.kind == TN.VAR_EXP:
-            if expr.exp.dec.is_global:
-                address = expr.exp.name
-            else:
-                address = self.fp.offset(expr.exp.dec.offset)
-        elif expr.exp.kind == TN.ARR_EXP:
-            if expr.exp.dec.is_global:
-                offset = expr.exp.index * self.WORD_SIZE
-                address = '{}({})'.format(offset, expr.exp.name)
-            else:
-                offset = expr.exp.dec.offset + expr.exp.index * self.WORD_SIZE
-                address = self.fp.offset(offset)
-        self.write_instr('lea', address, self.acc)
+        self.gen_l_value(expr.exp)
+        self.write_instr('mov', self.trash, self.acc)
 
     def gen_deref_expr(self, expr):
         """Generate code for a dereference expression :expr:."""
@@ -356,8 +345,6 @@ class CodeGenerator():
         :expr: into the trash register.
 
         """
-        # TODO:
-        #   - support dereferences
         if expr.kind == TN.VAR_EXP:
             if expr.dec.is_global:
                 self.write_instr('lea', expr.name, self.trash)
@@ -372,7 +359,8 @@ class CodeGenerator():
                 self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
             self.write_instr('add', self.acc, self.trash)  # address of array bucket now in trash
         elif expr.kind == TN.DEREF_EXP:
-            pass
+            self.gen_expr(expr.exp)  # acc now contains address of expression we want to dereference
+            self.write_instr('mov', self.acc, self.trash)
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
