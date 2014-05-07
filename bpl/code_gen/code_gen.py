@@ -31,8 +31,12 @@ class Label():
     def immediate(self):
         return '${self.name}'.format(self=self)
 
+    def offset(self, val):
+        return '{val}({self.name})'.format(self=self, val=val)
+
     def __str__(self):
         return self.name
+
 
 class CodeGenerator():
     WORD_SIZE = 8               # x86-64 word size is 8 bytes
@@ -45,6 +49,7 @@ class CodeGenerator():
     rem = Register('dx') # when dividing, remainders end up here
     fmt = Register('di') # when printing, put format strings here
     out = Register('si') # when printing, put values to be printed here
+    trash = Register('12') # spare register
 
 
     # string labels for immediate use
@@ -110,11 +115,14 @@ class CodeGenerator():
         if stmt.kind == TN.COMP_STMT:
             if stmt.local_decs is not None:
                 for local_dec in stmt.local_decs:
-                    local_dec.offset = dec_offset
-                    self.print_debug('local var {0} assigned offset {1}'.format(local_dec.name, local_dec.offset))
                     if local_dec.kind == TN.ARR_DEC:
-                        dec_offset -= self.WORD_SIZE * local_dec.size
+                        dec_offset -= self.WORD_SIZE * (local_dec.size - 1)
+                        local_dec.offset = dec_offset
+                        self.print_debug('local var {0} assigned offset {1}'.format(local_dec.name, local_dec.offset))
+                        dec_offset -= self.WORD_SIZE
                     else:
+                        local_dec.offset = dec_offset
+                        self.print_debug('local var {0} assigned offset {1}'.format(local_dec.name, local_dec.offset))
                         dec_offset -= self.WORD_SIZE
             # assign offsets to locals in nested compound statements
             if stmt.stmt_list is not None:
@@ -181,7 +189,6 @@ class CodeGenerator():
         self.write_to_assembly('\t.section .rodata\n')
         # allocate strings
         self.build_string_dict()
-        print(self.string_dict)
         for string, label in self.string_dict.iteritems():
             self.write_to_assembly('\t{}: .string "{}"\n'.format(label, string))
         self.write_to_assembly('\t{}: .string "%lld "\n'.format(self.write_int_label))
@@ -269,7 +276,7 @@ class CodeGenerator():
         if expr.kind == TN.VAR_EXP:
             self.gen_var_expr(expr)
         elif expr.kind == TN.ARR_EXP:
-            pass
+            self.gen_arr_expr(expr)
         elif expr.kind == TN.ADDR_EXP:
             self.gen_addr_expr(expr)
         elif expr.kind == TN.DEREF_EXP:
@@ -291,13 +298,13 @@ class CodeGenerator():
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
-        if expr.dec.is_global:
-            self.write_instr('mov', expr.name, self.acc)
-        else:
-            self.write_instr('mov', self.fp.offset(expr.dec.offset), self.acc)
+        self.gen_l_value(expr)
+        self.write_instr('mov', self.trash.offset(0), self.acc)
 
     def gen_arr_expr(self, expr):
-        pass
+        """Generate code for an array indexing expression :expr:."""
+        self.gen_l_value(expr)
+        self.write_instr('mov', self.trash.offset(0), self.acc)
 
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
@@ -337,19 +344,33 @@ class CodeGenerator():
 
     def gen_assign_expr(self, expr):
         """Generate code for an assignment expression :expr:."""
-        # TODO: support arrays and dereferences
-        # (currently only supporting assignment to variable expressions)
-        lhs = expr.l_exp
         self.gen_expr(expr.r_exp)
-        if lhs.kind == TN.VAR_EXP:
-            if lhs.dec.is_global:
-                self.write_instr('mov', self.acc, lhs.name)
+        self.write_instr('push', self.acc)
+        self.gen_l_value(expr.l_exp)  # l_value now in trash
+        self.write_instr('pop', self.acc)  # pop RHS into acc
+        self.write_instr('mov', self.acc, self.trash.offset(0))  # assign RHS to l_value
+
+    def gen_l_value(self, expr):
+        """Generates code to put the address of a variable or array expression
+        :expr: into the trash register.
+
+        """
+        # TODO:
+        #   - support dereferences
+        if expr.kind == TN.VAR_EXP:
+            if expr.dec.is_global:
+                self.write_instr('lea', expr.name, self.trash)
             else:
-                var_offset = lhs.dec.offset
-                self.write_instr('mov', self.acc, self.fp.offset(var_offset))
-        elif lhs.kind == TN.ARR_EXP:
-            pass
-        elif lhs.kind == TN.DEREF_EXP:
+                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+        elif expr.kind == TN.ARR_EXP:
+            self.gen_expr(expr.index)  # evaluate array index
+            self.write_instr('imul', self.WORD_SIZE, self.acc)  # compute offset of array bucket
+            if expr.dec.is_global:
+                self.write_instr('lea', expr.name, self.trash)
+            else:
+                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+            self.write_instr('add', self.acc, self.trash)  # address of array bucket now in trash
+        elif expr.kind == TN.DEREF_EXP:
             pass
 
     def gen_binary_expr(self, expr):
