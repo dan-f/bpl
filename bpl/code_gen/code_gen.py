@@ -72,9 +72,7 @@ class CodeGenerator():
         self.string_dict = {}
         self.string_label_count = count()
         self.control_label_count = count()
-        self.assembly_file = '%s.s' % self.filename[:-4]
-        with open(self.assembly_file, 'w') as f:
-            f.truncate(0)
+        self.assembly_filename = '%s.s' % self.filename[:-4]
 
     def assign_offsets(self):
         """Walks through the parse tree :tree:, assigning
@@ -171,11 +169,14 @@ class CodeGenerator():
     def gen_all(self):
         """Generate code for self.tree."""
         # for now just generate code for the header and functions
+        self.assembly_file = open(self.assembly_filename, 'w')
+        self.assembly_file.truncate()
         self.assign_offsets()
         self.gen_header()
         for dec in self.tree:
             if dec.kind == TN.FUN_DEC:
                 self.gen_func(dec)
+        self.assembly_file.close()
 
     def gen_header(self):
         """Generate assembly header."""
@@ -492,10 +493,7 @@ class CodeGenerator():
 
     def write_to_assembly(self, data):
         """Appends :data: to assembly file."""
-        if self.DEBUG:
-            print(data.rstrip())
-        with open(self.assembly_file, 'a') as f:
-            f.write(data)
+        self.assembly_file.write(data)
 
     def print_debug(self, message):
         if self.DEBUG:
