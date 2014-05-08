@@ -45,7 +45,7 @@ class TypeChecker():
         self.symbol_tables.append({})
         # grab param declarations
         if func.params is not None:
-            map(self.add_dec, func.params)
+            map(lambda dec: self.add_dec(dec, is_param=True), func.params)
         # link function body/local decs
         self.link_comp_stmt(func.body, push_table=False)
         self.symbol_tables.pop()
@@ -125,7 +125,7 @@ class TypeChecker():
             self.link_expr(expr.l_exp)
             self.link_expr(expr.r_exp)
 
-    def add_dec(self, dec):
+    def add_dec(self, dec, is_param=False):
         """Add :dec.name: -> :dec: to the top-level symbol table."""
         # can't re-declare same name
         if dec.name in self.symbol_tables[-1]:
@@ -136,8 +136,8 @@ class TypeChecker():
                     dec.name
                 )
             )
-        # can't have an array declaration with size < 1
-        if dec.kind == PTN.ARR_DEC and dec.size < 1:
+        # can't have an array declaration with size < 1 unless its a function parameter
+        if dec.kind == PTN.ARR_DEC and dec.size < 1 and not is_param:
             raise TypeException(
                 '%s:%d: Array declaration must have size of at least 1.' % (
                     self.filename,

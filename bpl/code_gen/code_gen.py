@@ -302,7 +302,10 @@ class CodeGenerator():
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
         self.gen_l_value(expr)
-        self.write_instr('mov', self.trash.offset(0), self.acc)
+        if expr.dec.kind == TN.VAR_DEC:
+            self.write_instr('mov', self.trash.offset(0), self.acc)
+        elif expr.dec.kind == TN.ARR_DEC:
+            self.write_instr('mov', self.trash, self.acc)
 
     def gen_arr_expr(self, expr):
         """Generate code for an array indexing expression :expr:."""
@@ -358,7 +361,11 @@ class CodeGenerator():
             if expr.dec.is_global:
                 self.write_instr('lea', expr.name, self.trash)
             else:
-                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+                is_param = expr.dec.offset > 0
+                if is_param:
+                    self.write_instr('mov', self.fp.offset(expr.dec.offset), self.trash)
+                else:
+                    self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
             self.write_instr('add', self.acc, self.trash)  # address of array bucket now in trash
         elif expr.kind == TN.DEREF_EXP:
             self.gen_expr(expr.exp)  # acc now contains address of expression we want to dereference

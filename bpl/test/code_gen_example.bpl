@@ -1,53 +1,41 @@
-string s1;
-string s2;
-
-void swap_ints(int *x, int *y)
+void f(int a[])
 {
-  int tmp;
-  tmp = *x;
-  *x = *y;
-  *y = tmp;
-}
-
-void swap_strings(string *x, string *y)
-{
-  string tmp;
-  tmp = *x;
-  *x = *y;
-  *y = tmp;
+  int i;
+  i = 0;
+  while (i < 3) {
+    a[i] = a[i] * 10;
+    i = i + 1;
+  }
 }
 
 void main(void)
 {
-  int a;
-  int b;
+  int x[3];
+  int i;
 
-  a = 0;
-  b = 1;
-
-  s1 = "foo";
-  s2 = "bar";
-
-  /* swap integers using pointers */
-  write(a);
-  write(b);
-
-  swap_ints(&a, &b);
-
-  write(a);
-  write(b);
-
-  writeln();
+  i = 0;
+  while (i < 3) {
+    x[i] = i + 1;
+    write(x[i]);
+    i = i + 1;
+  }
   writeln();
 
-  /* swap strings using pointers */
-  write(s1);
-  write(s2);
+  f(x);                         /* question - x is parsed as a
+                                 * variable expression... is that
+                                 * alright? It seems like it would
+                                 * make more sense if it parsed as an
+                                 * array expression with no index
+                                 * expression... but the parser
+                                 * wouldn't be able to figure that out
+                                 * without a symbol table.  My
+                                 * workaround in gen_var_expr() seems
+                                 * to work, though. */
 
-  swap_strings(&s1, &s2);
-
-  write(s1);
-  write(s2);
-
+  i = 0;
+  while (i < 3) {
+    write(x[i]);
+    i = i + 1;
+  }
   writeln();
 }
