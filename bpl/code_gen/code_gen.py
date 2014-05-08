@@ -158,6 +158,8 @@ class CodeGenerator():
             self.build_string_dict(node.body)
         elif node.kind == TN.RET_STMT:
             self.build_string_dict(node.val)
+        elif node.kind == TN.WRITE_STMT:
+            self.build_string_dict(node.expr)
         elif node.kind == TN.ASSIGN_EXP:
             self.build_string_dict(node.r_exp)
         elif node.kind == TN.FUN_CALL_EXP:
