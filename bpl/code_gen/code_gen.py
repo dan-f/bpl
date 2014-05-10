@@ -287,7 +287,7 @@ class CodeGenerator():
         elif expr.kind == TN.FUN_CALL_EXP:
             self.gen_funcall_expr(expr)
         elif expr.kind == TN.READ_EXP:
-            pass
+            self.gen_read_expr(expr)
         elif expr.kind == TN.ASSIGN_EXP:
             self.gen_assign_expr(expr)
         elif expr.kind in (TN.ARITH_EXP, TN.COMP_EXP):
@@ -335,7 +335,13 @@ class CodeGenerator():
         self.write_instr('add', len(args) * self.WORD_SIZE, self.sp, comment='pop args')
 
     def gen_read_expr(self, expr):
-        pass
+        """Generate code for a read expression :expr:"""
+        self.write_instr('sub', 40 * self.WORD_SIZE, self.sp)
+        self.write_instr('lea', self.sp.offset(24 * self.WORD_SIZE), self.out)
+        self.write_instr('mov', self.read_int_label.immediate(), self.fmt)
+        self.write_instr('call', 'scanf')
+        self.write_instr('mov', self.sp.offset(24 * self.WORD_SIZE), self.acc)
+        self.write_instr('add', 40 * self.WORD_SIZE, self.sp)
 
     def gen_assign_expr(self, expr):
         """Generate code for an assignment expression :expr:."""
