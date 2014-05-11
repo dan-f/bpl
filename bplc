@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+import argparse
+from bpl.scanner.scanner import Scanner, ScanException
+from bpl.parser.parser import Parser, ParseException
+from bpl.type_checker.type_checker import TypeChecker, TypeException
+from bpl.code_gen.code_gen import CodeGenerator
+import subprocess
+import sys
+
+
+parser = argparse.ArgumentParser(description='Compile a bpl program.')
+parser.add_argument('infile', help='The bpl input file.')
+parser.add_argument('-s', '--do-not-assemble', action='store_true',
+                    help='Stop after generating assembly.')
+parser.add_argument('-o', '--outfile', help='Name of the output executable.')
+args = parser.parse_args()
+
+try:
+    parser = Parser(args.infile)
+    parser.parse()
+    type_checker = TypeChecker(args.infile, parser.tree)
+    type_checker.type_check()
+    code_generator = CodeGenerator(args.infile, type_checker.tree)
+    code_generator.gen_code()
+except (ScanException, ParseException, TypeException) as e:
+    print(e)
+    sys.exit(1)
+
+if args.do_not_assemble:
+    sys.exit(0)
+
+assembler_command = ['gcc', code_generator.assembly_filename]
+if args.outfile is not None:
+    assembler_command += ['-o', args.outfile]
+subprocess.call(assembler_command)
