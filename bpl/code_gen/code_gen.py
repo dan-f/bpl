@@ -168,7 +168,7 @@ class CodeGenerator():
         elif node.kind in (TN.ADDR_EXP, TN.DEREF_EXP):
             self.build_string_dict(node.exp)
 
-    def gen_all(self):
+    def gen_code(self):
         """Generate code for self.tree."""
         # for now just generate code for the header and functions
         self.assembly_file = open(self.assembly_filename, 'w')
@@ -206,11 +206,11 @@ class CodeGenerator():
         """Generate code for a function tree node :func:."""
         self.write_label(func.name)
         self.write_instr('mov', self.sp, self.fp, 'move sp into fp')
-        self.write_instr('sub', func.locals_size, self.sp, 'allocate local vars')
+        self.write_instr('sub', func.locals_size, self.sp, comment='allocate local vars')
         func.ret_label = '.{0}_ret'.format(func.name)
         self.gen_stmt(func.body, func)
         self.write_label(func.ret_label)
-        self.write_instr('add', func.locals_size, self.sp, 'deallocate local vars')
+        self.write_instr('add', func.locals_size, self.sp, comment='deallocate local vars')
         self.write_instr('ret')
 
     def gen_stmt(self, stmt, func):
@@ -230,7 +230,7 @@ class CodeGenerator():
             self.gen_while_stmt(stmt, func)
         elif stmt.kind == TN.RET_STMT:
             self.gen_expr(stmt.val)
-            self.write_instr('jmp', func.ret_label)
+            self.write_instr('jmp', func.ret_label, comment='return from {}'.format(func.name))
         elif stmt.kind == TN.EXPR_STMT:
             self.gen_expr(stmt.expr)
 
@@ -238,7 +238,7 @@ class CodeGenerator():
         """Generate code for a write or writeln statement :stmt:."""
         if stmt.kind == TN.WRITE_STMT:
             self.gen_expr(stmt.expr)
-            self.write_instr('mov', self.acc, self.out, 'move val for printing')
+            self.write_instr('mov', self.acc, self.out, comment='move val to be printed')
             if stmt.expr.typ == BPLType('INT'):
                 self.write_instr('mov', self.write_int_label.immediate(), self.fmt)
             elif stmt.expr.typ == BPLType('STRING'):
@@ -253,11 +253,11 @@ class CodeGenerator():
         self.gen_expr(stmt.cond)
         true_label = self.new_control_label()
         continue_label = self.new_control_label()
-        self.write_instr('cmp', 0, self.acc)
-        self.write_instr('jne', true_label)
+        self.write_instr('cmp', 0, self.acc, comment='test if_stmt\'s condition')
+        self.write_instr('jne', true_label, comment='jump to if_stmt\'s true label')
         if stmt.false_body is not None:
             self.gen_stmt(stmt.false_body, func)
-        self.write_instr('jmp', continue_label)
+        self.write_instr('jmp', continue_label, comment='jump to if_stmt\'s continue label')
         self.write_label(true_label)
         self.gen_stmt(stmt.true_body, func)
         self.write_label(continue_label)
@@ -268,10 +268,10 @@ class CodeGenerator():
         continue_label = self.new_control_label()
         self.write_label(cond_label)
         self.gen_expr(stmt.cond)
-        self.write_instr('cmp', 0, self.acc, 'check while condition')
-        self.write_instr('je', continue_label)
+        self.write_instr('cmp', 0, self.acc, comment='check while_stmt\'s condition')
+        self.write_instr('je', continue_label, comment='jump to while_stmt\'s continue label')
         self.gen_stmt(stmt.body, func)
-        self.write_instr('jmp', cond_label)
+        self.write_instr('jmp', cond_label, comment='jump to while_stmt\'s cond label')
         self.write_label(continue_label)
 
     def gen_expr(self, expr):
@@ -303,15 +303,15 @@ class CodeGenerator():
         """Generate code for a variable expression :expr:."""
         if expr.dec.kind == TN.VAR_DEC:
             self.gen_var_addr(expr)
-            self.write_instr('mov', self.trash.offset(0), self.acc)
+            self.write_instr('mov', self.trash.offset(0), self.acc, comment='move variable {} into acc'.format(expr.name))
         elif expr.dec.kind == TN.ARR_DEC:
             self.gen_arr_base_addr(expr)
-            self.write_instr('mov', self.trash, self.acc)
+            self.write_instr('mov', self.trash, self.acc, comment='move array {}\'s addr  into acc'.format(expr.name))
 
     def gen_arr_expr(self, expr):
         """Generate code for an array indexing expression :expr:."""
         self.gen_arr_addr(expr)
-        self.write_instr('mov', self.trash.offset(0), self.acc)
+        self.write_instr('mov', self.trash.offset(0), self.acc, comment='move array exp {} into acc'.format(expr.name))
 
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
@@ -319,12 +319,12 @@ class CodeGenerator():
             self.gen_var_addr(expr.exp)
         elif expr.exp.kind == TN.ARR_EXP:
             self.gen_arr_addr(expr.exp)
-        self.write_instr('mov', self.trash, self.acc)
+        self.write_instr('mov', self.trash, self.acc, comment='move address expression into acc')
 
     def gen_deref_expr(self, expr):
         """Generate code for a dereference expression :expr:."""
         self.gen_expr(expr.exp)  # put address in the accumulator
-        self.write_instr('mov', self.acc.offset(0), self.acc)
+        self.write_instr('mov', self.acc.offset(0), self.acc, comment='put dereferenced value in acc')
 
     def gen_funcall_expr(self, expr):
         """Generate code for a function call expression :expr:."""
@@ -340,20 +340,20 @@ class CodeGenerator():
 
     def gen_read_expr(self, expr):
         """Generate code for a read expression :expr:"""
-        self.write_instr('sub', 40 * self.WORD_SIZE, self.sp)
+        self.write_instr('sub', 40 * self.WORD_SIZE, self.sp, comment='prepare for read expression')
         self.write_instr('lea', self.sp.offset(24 * self.WORD_SIZE), self.out)
         self.write_instr('mov', self.read_int_label.immediate(), self.fmt)
         self.write_instr('call', 'scanf')
         self.write_instr('mov', self.sp.offset(24 * self.WORD_SIZE), self.acc)
-        self.write_instr('add', 40 * self.WORD_SIZE, self.sp)
+        self.write_instr('add', 40 * self.WORD_SIZE, self.sp, comment='finish read expression')
 
     def gen_assign_expr(self, expr):
         """Generate code for an assignment expression :expr:."""
         self.gen_expr(expr.r_exp)
-        self.write_instr('push', self.acc)
+        self.write_instr('push', self.acc, comment='save RHS of assignment')
         self.gen_l_value(expr.l_exp)  # l_value now in trash
-        self.write_instr('pop', self.acc)  # pop RHS into acc
-        self.write_instr('mov', self.acc, self.trash.offset(0))  # assign RHS to l_value
+        self.write_instr('pop', self.acc, comment='pop RHS of assignment')  # pop RHS into acc
+        self.write_instr('mov', self.acc, self.trash.offset(0), comment='make assignment')  # assign RHS to l_value
 
     def gen_l_value(self, expr):
         """Generates code to put the address of a variable or array expression
@@ -366,17 +366,18 @@ class CodeGenerator():
             self.gen_arr_addr(expr)
         elif expr.kind == TN.DEREF_EXP:
             self.gen_expr(expr.exp)  # acc now contains address of expression we want to dereference
-            self.write_instr('mov', self.acc, self.trash)
+            self.write_instr('mov', self.acc, self.trash, comment='put l_value of dereference assignment in trash')
 
     def gen_var_addr(self, expr):
         """Helper function to put the address of the variable represented by
         variable expression :expr: in the trash register.
 
         """
+        comment = 'put address of {} in trash'.format(expr.name)
         if expr.dec.is_global:
-            self.write_instr('lea', expr.name, self.trash)
+            self.write_instr('lea', expr.name, self.trash, comment=comment)
         else:
-            self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+            self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash, comment=comment)
 
     def gen_arr_addr(self, expr):
         """Helper function to put the address of the array represented by array
@@ -384,24 +385,25 @@ class CodeGenerator():
 
         """
         self.gen_expr(expr.index)  # evaluate array index
-        self.write_instr('imul', self.WORD_SIZE, self.acc)  # compute offset of array bucket
+        self.write_instr('imul', self.WORD_SIZE, self.acc, comment='compute offset of array {}\'s bucket'.format(expr.name))
         self.gen_arr_base_addr(expr)  # put base address of array in trash
-        self.write_instr('add', self.acc, self.trash)  # address of array bucket now in trash
+        self.write_instr('add', self.acc, self.trash, comment='add bucket offset of {} to array address'.format(expr.name))  # address of array bucket now in trash
 
     def gen_arr_base_addr(self, expr):
         """Helper function; given a variable/array expression :expr:, generate
         code to compute the base address of the array in the trash register.
 
         """
+        comment = 'compute array {}\'s base address'.format(expr.name)
         if expr.dec.is_global:
-            self.write_instr('lea', expr.name, self.trash)
+            self.write_instr('lea', expr.name, self.trash, comment=comment)
         else:
             # either parameter or local var
             is_param = expr.dec.offset > 0
             if is_param:
-                self.write_instr('mov', self.fp.offset(expr.dec.offset), self.trash)
+                self.write_instr('mov', self.fp.offset(expr.dec.offset), self.trash, comment=comment)
             else:
-                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash, comment=comment)
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
@@ -410,13 +412,13 @@ class CodeGenerator():
 
         """
         self.gen_expr(expr.l_exp)
-        self.write_instr('push', self.acc, comment='push LHS')
+        self.write_instr('push', self.acc, comment='save LHS')
         self.gen_expr(expr.r_exp)
         if expr.kind == TN.ARITH_EXP:
             self.gen_arith_expr(expr)
         elif expr.kind == TN.COMP_EXP:
             self.gen_comp_expr(expr)
-        self.write_instr('add', self.WORD_SIZE, self.sp, comment='pop LHS from stack')
+        self.write_instr('add', self.WORD_SIZE, self.sp, comment='pop LHS')
 
     def gen_arith_expr(self, expr):
         """Generate code for an arithmetic expression"""
@@ -462,10 +464,10 @@ class CodeGenerator():
         elif expr.op.typ == TokenType.GEQUAL:
             jump_instr = 'jl'
         self.write_instr(jump_instr, false_label)
-        self.write_instr('mov', 1, self.acc) # true
+        self.write_instr('mov', 1, self.acc, comment='comparison is true')
         self.write_instr('jmp', continue_label)
         self.write_label(false_label)
-        self.write_instr('mov', 0, self.acc) # false
+        self.write_instr('mov', 0, self.acc, comment='comparison is false')
         self.write_label(continue_label)
 
     def gen_neg_expr(self, expr):
@@ -473,7 +475,7 @@ class CodeGenerator():
         self.gen_expr(expr.exp)
         self.write_instr('push', self.acc)
         self.write_instr('mov', 0, self.acc)
-        self.write_instr('sub', self.sp.offset(0), self.acc)
+        self.write_instr('sub', self.sp.offset(0), self.acc, comment='compare negation')
         self.write_instr('add', self.WORD_SIZE, self.sp)
 
     def write_instr(self, instr, source=None, dest=None, comment=None):

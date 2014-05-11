@@ -12,7 +12,7 @@ if __name__ == '__main__':
             t = TypeChecker(p.filename, p.tree, DEBUG=True)
             t.type_check()
             c = CodeGenerator(t.filename, t.tree, DEBUG=True)
-            c.gen_all()
+            c.gen_code()
             prog_name = p.filename[:-4]
             assembly_name = prog_name + '.s'
             call(['gcc', '-g', assembly_name, '-o', prog_name])
@@ -22,7 +22,7 @@ if __name__ == '__main__':
         t = TypeChecker(p.filename, p.tree)
         t.type_check()
         c = CodeGenerator(t.filename, t.tree, DEBUG=True)
-        c.gen_all()
+        c.gen_code()
         prog_name = p.filename[:-4]
         assembly_name = prog_name + '.s'
         call(['gcc', '-g', assembly_name, '-o', prog_name])
