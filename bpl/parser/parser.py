@@ -8,7 +8,6 @@ class Parser():
         """Initialize a parser to parse the contents of :filename:."""
         self.filename = filename
         self.scan = Scanner(filename)
-        self.scan.get_next_token()  # grab our first token
         self.tree = tree
 
     def expect(self, *args):
@@ -54,6 +53,7 @@ class Parser():
 
     def parse(self):
         """Construct our parse tree and save it to self.tree"""
+        self.scan.get_next_token()  # grab our first token
         tree = self.dec_list()
         self.expect(TokenType.EOF, 'unexpected token at end of file')
         self.tree = tree
