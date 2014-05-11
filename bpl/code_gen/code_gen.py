@@ -72,7 +72,7 @@ class CodeGenerator():
         self.string_dict = {}
         self.string_label_count = count()
         self.control_label_count = count()
-        self.assembly_filename = '%s.s' % self.filename[:-4]
+        self.assembly_filename = '{}.s'.format(self.filename.rstrip('.bpl'))
 
     def assign_offsets(self):
         """Walks through the parse tree :tree:, assigning
