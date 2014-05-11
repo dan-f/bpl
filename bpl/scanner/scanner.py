@@ -93,8 +93,8 @@ class Scanner():
                         state = NUMBER
                         i += 1
                     else:
-                        raise Exception('%s:%d:%d: Unknown character %s'
-                                        % (self.filename, line, i - line_begin, buf[i]))
+                        raise ScanException('%s:%d:%d: Unknown character %s'
+                                            % (self.filename, line, i - line_begin, buf[i]))
 
                 elif state == COMMENT:
                     if buf[i] == '\n':
@@ -108,8 +108,8 @@ class Scanner():
 
                 elif state == STRLIT:
                     if buf[i] == '\n':
-                        raise Exception('%s:%d:%d: Unexpected newline in string literal'
-                                        % (self.filename, line, i - line_begin))
+                        raise ScanException('%s:%d:%d: Unexpected newline in string literal'
+                                            % (self.filename, line, i - line_begin))
                     if buf[i] != '\"':
                         cur_str += buf[i]
                     else:
@@ -156,11 +156,11 @@ class Scanner():
             # (unclosed strings/comments or unknown Tokens) and return
             # remaining token, if any.
             if state == STRLIT:
-                raise Exception('%s:%d:%d: Unclosed string literal'
-                                % (self.filename, line, i - line_begin))
+                raise ScanException('%s:%d:%d: Unclosed string literal'
+                                    % (self.filename, line, i - line_begin))
             elif state == COMMENT:
-                raise Exception('%s:%d:%d: Unclosed comment'
-                                % (self.filename, line, i - line_begin))
+                raise ScanException('%s:%d:%d: Unclosed comment'
+                                    % (self.filename, line, i - line_begin))
             elif state == KEY_ID:
                 if cur_str in TokenType.Keywords:
                     yield Token(TokenType.Keywords[cur_str], cur_str, line)
@@ -170,8 +170,13 @@ class Scanner():
                 if cur_str in TokenType.Symbols:
                     yield Token(TokenType.Symbols[cur_str], cur_str, line)
                 else:
-                    raise Exception('%s:%d:%d: Unknown Token'
-                                    % (self.filename, line, i - line_begin))
+                    raise ScanException('%s:%d:%d: Unknown Token'
+                                        % (self.filename, line, i - line_begin))
             elif state == NUMBER:
                 yield Token(TokenType.NUM, cur_str, line)
             yield Token(TokenType.EOF, 'EOF', line)
+
+
+class ScanException(Exception):
+    def __init__(self, message):
+        Exception.__init__(self, message)
