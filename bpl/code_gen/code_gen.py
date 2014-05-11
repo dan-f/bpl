@@ -315,9 +315,9 @@ class CodeGenerator():
 
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
-        if self.expr.exp.kind == TN.VAR_EXP:
+        if expr.exp.kind == TN.VAR_EXP:
             self.gen_var_addr(expr.exp)
-        elif self.expr.exp.kind == TN.ARR_EXP:
+        elif expr.exp.kind == TN.ARR_EXP:
             self.gen_arr_addr(expr.exp)
         self.write_instr('mov', self.trash, self.acc)
 
