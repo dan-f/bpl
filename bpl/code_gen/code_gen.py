@@ -301,20 +301,24 @@ class CodeGenerator():
 
     def gen_var_expr(self, expr):
         """Generate code for a variable expression :expr:."""
-        self.gen_l_value(expr)
         if expr.dec.kind == TN.VAR_DEC:
+            self.gen_var_addr(expr)
             self.write_instr('mov', self.trash.offset(0), self.acc)
         elif expr.dec.kind == TN.ARR_DEC:
+            self.gen_arr_base_addr(expr)
             self.write_instr('mov', self.trash, self.acc)
 
     def gen_arr_expr(self, expr):
         """Generate code for an array indexing expression :expr:."""
-        self.gen_l_value(expr)
+        self.gen_arr_addr(expr)
         self.write_instr('mov', self.trash.offset(0), self.acc)
 
     def gen_addr_expr(self, expr):
         """Generate code for an address expression :expr:."""
-        self.gen_l_value(expr.exp)
+        if self.expr.exp.kind == TN.VAR_EXP:
+            self.gen_var_addr(expr.exp)
+        elif self.expr.exp.kind == TN.ARR_EXP:
+            self.gen_arr_addr(expr.exp)
         self.write_instr('mov', self.trash, self.acc)
 
     def gen_deref_expr(self, expr):
@@ -357,25 +361,47 @@ class CodeGenerator():
 
         """
         if expr.kind == TN.VAR_EXP:
-            if expr.dec.is_global:
-                self.write_instr('lea', expr.name, self.trash)
-            else:
-                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+            self.gen_var_addr(expr)
         elif expr.kind == TN.ARR_EXP:
-            self.gen_expr(expr.index)  # evaluate array index
-            self.write_instr('imul', self.WORD_SIZE, self.acc)  # compute offset of array bucket
-            if expr.dec.is_global:
-                self.write_instr('lea', expr.name, self.trash)
-            else:
-                is_param = expr.dec.offset > 0
-                if is_param:
-                    self.write_instr('mov', self.fp.offset(expr.dec.offset), self.trash)
-                else:
-                    self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
-            self.write_instr('add', self.acc, self.trash)  # address of array bucket now in trash
+            self.gen_arr_addr(expr)
         elif expr.kind == TN.DEREF_EXP:
             self.gen_expr(expr.exp)  # acc now contains address of expression we want to dereference
             self.write_instr('mov', self.acc, self.trash)
+
+    def gen_var_addr(self, expr):
+        """Helper function to put the address of the variable represented by
+        variable expression :expr: in the trash register.
+
+        """
+        if expr.dec.is_global:
+            self.write_instr('lea', expr.name, self.trash)
+        else:
+            self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
+
+    def gen_arr_addr(self, expr):
+        """Helper function to put the address of the array represented by array
+        expression :expr: in the trash register.
+
+        """
+        self.gen_expr(expr.index)  # evaluate array index
+        self.write_instr('imul', self.WORD_SIZE, self.acc)  # compute offset of array bucket
+        self.gen_arr_base_addr(expr)  # put base address of array in trash
+        self.write_instr('add', self.acc, self.trash)  # address of array bucket now in trash
+
+    def gen_arr_base_addr(self, expr):
+        """Helper function; given a variable/array expression :expr:, generate
+        code to compute the base address of the array in the trash register.
+
+        """
+        if expr.dec.is_global:
+            self.write_instr('lea', expr.name, self.trash)
+        else:
+            # either parameter or local var
+            is_param = expr.dec.offset > 0
+            if is_param:
+                self.write_instr('mov', self.fp.offset(expr.dec.offset), self.trash)
+            else:
+                self.write_instr('lea', self.fp.offset(expr.dec.offset), self.trash)
 
     def gen_binary_expr(self, expr):
         """Generate code for a binary expression :expr: (i.e. an OpExpNode).
