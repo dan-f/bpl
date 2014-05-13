@@ -157,7 +157,8 @@ class CodeGenerator():
         elif node.kind == TN.WHILE_STMT:
             self.build_string_dict(node.body)
         elif node.kind == TN.RET_STMT:
-            self.build_string_dict(node.val)
+            if node.val is not None:
+                self.build_string_dict(node.val)
         elif node.kind == TN.WRITE_STMT:
             self.build_string_dict(node.expr)
         elif node.kind == TN.ASSIGN_EXP:
@@ -229,7 +230,8 @@ class CodeGenerator():
         elif stmt.kind == TN.WHILE_STMT:
             self.gen_while_stmt(stmt, func)
         elif stmt.kind == TN.RET_STMT:
-            self.gen_expr(stmt.val)
+            if stmt.val is not None:
+                self.gen_expr(stmt.val)
             self.write_instr('jmp', func.ret_label, comment='return from {}'.format(func.name))
         elif stmt.kind == TN.EXPR_STMT:
             self.gen_expr(stmt.expr)
@@ -329,7 +331,10 @@ class CodeGenerator():
     def gen_funcall_expr(self, expr):
         """Generate code for a function call expression :expr:."""
         # push args on stack in reverse order
-        args = [arg for arg in expr.params]
+        if expr.params is not None:
+            args = [arg for arg in expr.params]
+        else:
+            args = []
         for arg in reversed(args):
             self.gen_expr(arg)
             self.write_instr('push', self.acc, comment='push arg')
