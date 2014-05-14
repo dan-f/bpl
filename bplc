@@ -4,6 +4,7 @@ from bpl.scanner.scanner import Scanner, ScanException
 from bpl.parser.parser import Parser, ParseException
 from bpl.type_checker.type_checker import TypeChecker, TypeException
 from bpl.code_gen.code_gen import CodeGenerator
+import os
 import subprocess
 import sys
 
@@ -33,3 +34,4 @@ assembler_command = ['gcc', code_generator.assembly_filename]
 if args.outfile is not None:
     assembler_command += ['-o', args.outfile]
 subprocess.call(assembler_command)
+os.remove(code_generator.assembly_filename)
